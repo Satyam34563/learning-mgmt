@@ -98,7 +98,7 @@ The SMS then also accepts `http://localhost:<port>` callbacks. Tokens only ever 
 
 ## Deploy (self-hosted)
 
-Step-by-step for a school, including DNS, HTTPS and the SMS side: see **[DEPLOY.md](DEPLOY.md)**.
+Step-by-step for a school, including DNS, HTTPS and the SMS side: see **[DEPLOY.md](DEPLOY.md)** (Docker), or **[deploy/native](deploy/native/README.md)** for a small server without Docker.
 
 
 On the server (Docker installed):

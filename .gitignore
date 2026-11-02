@@ -11,3 +11,4 @@ server/uploads/
 *.tsbuildinfo
 server/keys/
 downloads/
+logs/
