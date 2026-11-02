@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, className, type Lecture, type Paged, type Progress } from '../lib/api';
-import { useClasses, useMe, useStats, useSubjects } from '../lib/hooks';
+import { useClasses, useMe, useSchool, useStats, useSubjects } from '../lib/hooks';
 import { LectureCard, LectureGrid, SubjectDot } from '../components/ui';
 
 export default function Home() {
   const { data: me } = useMe();
+  const { data: school } = useSchool();
   const { data: classes } = useClasses();
   const { data: subjects } = useSubjects();
   const { data: stats } = useStats();
@@ -22,7 +23,8 @@ export default function Home() {
   return (
     <div className="space-y-12">
       <section>
-        <h1 className="text-3xl">{me ? `Welcome back, ${me.name.split(' ')[0]}` : 'School lectures'}</h1>
+        {school?.name && <p className="text-sm muted">{school.name}</p>}
+        <h1 className="text-3xl">{me ? `Welcome back, ${me.name.split(' ')[0]}` : 'Lectures'}</h1>
         <p className="mt-2 muted">
           {stats ? `${stats.lectures} lectures across ${stats.classes} classes and ${stats.subjects} subjects.` : ' '}
         </p>

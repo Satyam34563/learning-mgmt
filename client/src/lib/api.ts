@@ -83,6 +83,18 @@ export interface Bookmark {
   createdAt: string;
 }
 
+export interface SchoolBranding {
+  name: string | null;
+  short_name: string | null;
+  tagline: string | null;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  website: string | null;
+  logo_url: string | null;
+  building_url: string | null;
+}
+
 export class ApiError extends Error {
   constructor(
     public status: number,

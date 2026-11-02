@@ -4,8 +4,12 @@
     {
       "name": "lectures-dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 5173
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "port": 5173,
+      "url": "http://dlcs.lectures.localhost:5173"
     }
   ]
 }

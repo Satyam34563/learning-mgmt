@@ -2,7 +2,8 @@ import { useState, type FormEvent } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, type Me } from '../lib/api';
-import { useAuthOptions, useMe } from '../lib/hooks';
+import { useAuthOptions, useMe, useSchool } from '../lib/hooks';
+import SchoolLogo from '../components/SchoolLogo';
 import { ErrorBox } from '../components/ui';
 
 export default function Login() {
@@ -10,6 +11,7 @@ export default function Login() {
   const next = params.get('next') || '/';
   const { data: me } = useMe();
   const { data: opts } = useAuthOptions();
+  const { data: school } = useSchool();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [userId, setUserId] = useState('');
@@ -38,8 +40,13 @@ export default function Login() {
 
   return (
     <div className="mx-auto mt-10 max-w-sm">
-      <h1 className="text-center">Log in</h1>
-      <p className="mt-1 text-center text-sm muted">Use the same user ID and password as the School Management System.</p>
+      <div className="flex flex-col items-center text-center">
+        <SchoolLogo className="size-16" />
+        {school?.name && <p className="mt-3 font-semibold">{school.name}</p>}
+        {school?.tagline && <p className="text-xs muted">{school.tagline}</p>}
+        <h1 className="mt-6">Log in to lectures</h1>
+        <p className="mt-1 text-sm muted">Use the same user ID and password as the School Management System.</p>
+      </div>
       <div className="card mt-6 space-y-4 p-6">
         <ErrorBox error={error} />
         {canLogIn && (

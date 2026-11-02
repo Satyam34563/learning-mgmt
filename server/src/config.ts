@@ -40,16 +40,29 @@ export const config = {
   allowLocalLogin: bool('ALLOW_LOCAL_LOGIN', !isProd),
 
   sms: smsConfig(),
+
+  /** Branding fallbacks, used until (or instead of) the school details from the SMS. */
+  school: {
+    name: process.env.SCHOOL_NAME ?? '',
+    shortName: process.env.SCHOOL_SHORT_NAME ?? '',
+    logoUrl: process.env.SCHOOL_LOGO_URL ?? '',
+  },
 };
 
+/** The school this portal belongs to: "dlcs" for dlcs.lectures.managemyschools.in or dlcs.lectures.localhost. */
+function schoolSlug(clientOrigin: string) {
+  return process.env.SCHOOL_SLUG || new URL(clientOrigin).hostname.match(/^([^.]+)\.lectures\./)?.[1] || '';
+}
+
 /**
- * Everything SMS login needs can be derived from one address. A portal at
- * https://dlcs.lectures.managemyschools.in talks to https://dlcs.managemyschools.in unless SMS_BASE_URL says otherwise.
+ * Everything SMS login needs can be derived from one address. A portal at https://dlcs.lectures.managemyschools.in
+ * (or http://dlcs.lectures.localhost:5173 in dev) talks to https://dlcs.managemyschools.in unless SMS_BASE_URL says otherwise.
  */
 function smsConfig() {
   const clientOrigin = process.env.CLIENT_ORIGIN ?? 'http://localhost:5173';
-  const derived = new URL(clientOrigin).hostname.match(/^([^.]+)\.lectures\.(.+)$/);
-  const baseUrl = (process.env.SMS_BASE_URL || (derived ? `https://${derived[1]}.${derived[2]}` : '')).replace(/\/$/, '');
+  const slug = schoolSlug(clientOrigin);
+  const pattern = process.env.SMS_URL_PATTERN || 'https://{school}.managemyschools.in';
+  const baseUrl = (process.env.SMS_BASE_URL || (slug ? pattern.replace('{school}', slug) : '')).replace(/\/$/, '');
   const mock = bool('SMS_MOCK', false) && !isProd;
   return {
     baseUrl,
@@ -58,6 +71,8 @@ function smsConfig() {
     /** RS256 public key: a file, inline PEM, or (default) fetched from the SMS. */
     tokenPublicKey: readPublicKey(),
     publicKeyUrl: process.env.SMS_TOKEN_PUBLIC_KEY_URL || (baseUrl && `${baseUrl}/sso/lectures/public-key`),
+    /** Public school name / logo / contact details for branding. */
+    schoolUrl: process.env.SMS_SCHOOL_URL || (baseUrl && `${baseUrl}/sso/lectures/school`),
     /** SMS endpoint that checks a user ID + password for the portal's login form. */
     passwordLoginUrl: process.env.SMS_PASSWORD_LOGIN_URL || (baseUrl && `${baseUrl}/api/sso/lectures/login`),
     /** Shared secret (HS256). Only the dev mock uses it. */

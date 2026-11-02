@@ -50,7 +50,7 @@ curl -s -X POST https://dlcs.managemyschools.in/api/sso/lectures/login \
 # {"message":"Wrong user ID or password."}
 ```
 
-> Testing from your laptop first? Also set `LECTURES_SSO_ALLOW_LOCALHOST=true`, and set `SMS_BASE_URL=https://dlcs.managemyschools.in` in `server/.env`. Remove the localhost setting once the real portal is live.
+> Testing from your laptop first? Also set `LECTURES_SSO_ALLOW_LOCALHOST=true`, then open `http://dlcs.lectures.localhost:5173`. The local portal works out the school and its SMS from that name. Remove the localhost setting once the real portal is live.
 
 ## 2. DNS
 

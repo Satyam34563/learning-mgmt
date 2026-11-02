@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, qs, type Chapter, type Me, type SchoolClass, type Subject, type Teacher } from './api';
+import { api, qs, type Chapter, type Me, type SchoolBranding, type SchoolClass, type Subject, type Teacher } from './api';
 
 export interface AuthOptions {
   sms: boolean;
@@ -11,6 +11,12 @@ export interface AuthOptions {
 export const useMe = () => useQuery({ queryKey: ['me'], queryFn: () => api.get<Me | null>('/auth/me'), staleTime: 5 * 60_000 });
 export const useAuthOptions = () =>
   useQuery({ queryKey: ['auth-options'], queryFn: () => api.get<AuthOptions>('/auth/options'), staleTime: Infinity });
+
+export const useSchool = () =>
+  useQuery({ queryKey: ['school'], queryFn: () => api.get<SchoolBranding>('/school'), staleTime: 10 * 60_000 });
+
+/** "DLCS Lectures", or just "Lectures" until the school is known. */
+export const portalTitle = (s?: SchoolBranding) => [s?.short_name || s?.name, 'Lectures'].filter(Boolean).join(' ');
 
 export const isStaff = (me?: Me | null) => me?.role === 'admin' || me?.role === 'teacher';
 

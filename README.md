@@ -18,7 +18,7 @@ npm install
 cp server/.env.example server/.env
 npm run db:up       # MongoDB in Docker on 127.0.0.1:27017
 npm run seed        # sample classes, subjects, chapters, lectures and demo accounts
-npm run dev         # API on :4000, web on http://localhost:5173
+npm run dev         # API on :4000, web on http://dlcs.lectures.localhost:5173
 ```
 
 Demo accounts (password `admin12345`): `admin@school.local`, `teacher@school.local`, `student@school.local`.
@@ -92,7 +92,7 @@ The portal address defaults to `https://{tenant}.lectures.managemyschools.in`. C
 ### Testing locally against a live SMS
 
 1. In that SMS's `.env`, set `LECTURES_SSO_TENANTS=dlcs` and `LECTURES_SSO_ALLOW_LOCALHOST=true`, then run `php artisan config:clear`.
-2. In `server/.env`, set `SMS_BASE_URL=https://dlcs.managemyschools.in` and `SMS_MOCK=false`.
+2. In `server/.env`, set `CLIENT_ORIGIN=http://dlcs.lectures.localhost:5173` and `SMS_MOCK=false`, then open that address. The school and its SMS are worked out from the name.
 
 The SMS then also accepts `http://localhost:<port>` callbacks. Tokens only ever go to the signed-in user's own machine, but turn this off once real portals are live.
 

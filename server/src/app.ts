@@ -14,6 +14,7 @@ import statsRouter from './routes/stats.js';
 import meRouter from './routes/me.js';
 import uploadsRouter from './routes/uploads.js';
 import importRouter from './routes/import.js';
+import { getSchoolBranding } from './lib/school.js';
 
 export function createApp() {
   const app = express();
@@ -27,6 +28,11 @@ export function createApp() {
 
   app.get('/api/health', (_req, res) => {
     res.json({ ok: true, db: mongoose.connection.readyState === 1 });
+  });
+
+  // Public on purpose: the login page shows the school's name and logo.
+  app.get('/api/school', async (_req, res) => {
+    res.set('Cache-Control', 'public, max-age=300').json(await getSchoolBranding());
   });
 
   app.use('/api/auth', authRouter);
