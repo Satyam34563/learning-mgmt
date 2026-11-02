@@ -7,7 +7,7 @@ Two codebases are involved:
 | What | Repo | Where it runs |
 | --- | --- | --- |
 | SSO endpoints | `sms` (Laravel) | the existing SMS server, e.g. `dlcs.managemyschools.in` |
-| Lecture portal | `online-lectures` (this repo) | Docker on any server, here the same one as the SMS |
+| Lecture portal | `learning-mgmt` (this repo) | Docker on any server, here the same one as the SMS |
 
 ---
 
@@ -62,14 +62,9 @@ At your DNS provider for `managemyschools.in`, add an **A record**:
 
 Or add a wildcard `*.lectures`, so future schools need no DNS change. Check with `dig +short dlcs.lectures.managemyschools.in`.
 
-## 3. Put this repo on GitHub (once)
+## 3. The code on GitHub
 
-```bash
-cd online-lectures
-gh repo create Satyam34563/online-lectures --private --source . --push
-# or: create an empty repo on github.com, then
-# git remote add origin git@github.com:Satyam34563/online-lectures.git && git push -u origin main
-```
+The portal lives at **https://github.com/Satyam34563/learning-mgmt**. Push changes from your machine with `git push`; the server pulls from there.
 
 ## 4. Server: run the portal
 
@@ -83,7 +78,7 @@ Clone the repo and configure it:
 
 ```bash
 sudo mkdir -p /opt/lectures && sudo chown "$USER" /opt/lectures
-git clone git@github.com:Satyam34563/online-lectures.git /opt/lectures/dlcs
+git clone https://github.com/Satyam34563/learning-mgmt.git /opt/lectures/dlcs
 cd /opt/lectures/dlcs
 cp docker/.env.prod.example docker/.env.prod
 nano docker/.env.prod

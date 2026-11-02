@@ -104,7 +104,7 @@ Step-by-step for a school, including DNS, HTTPS and the SMS side: see **[DEPLOY.
 On the server (Docker installed):
 
 ```bash
-git clone <repo> /opt/online-lectures && cd /opt/online-lectures
+git clone https://github.com/Satyam34563/learning-mgmt.git /opt/lectures/dlcs && cd /opt/lectures/dlcs
 cp docker/.env.prod.example docker/.env.prod   # fill in secrets, domain and SMS settings
 docker compose -f docker/docker-compose.prod.yml --env-file docker/.env.prod up -d --build
 ```
@@ -118,7 +118,7 @@ docker compose -f docker/docker-compose.prod.yml --env-file docker/.env.prod up 
 `docker/backup.sh` dumps MongoDB (gzipped archive) and the uploads volume into `backups/`, keeping 14 days. Add it to cron:
 
 ```
-30 2 * * * /opt/online-lectures/docker/backup.sh >> /var/log/lectures-backup.log 2>&1
+30 2 * * * /opt/lectures/dlcs/docker/backup.sh >> /var/log/lectures-backup.log 2>&1
 ```
 
 Restore instructions are at the bottom of the script. Copy `backups/` off the server too, for example with rclone to cloud storage.
