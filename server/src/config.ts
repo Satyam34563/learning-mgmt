@@ -58,6 +58,8 @@ function smsConfig() {
     /** RS256 public key: a file, inline PEM, or (default) fetched from the SMS. */
     tokenPublicKey: readPublicKey(),
     publicKeyUrl: process.env.SMS_TOKEN_PUBLIC_KEY_URL || (baseUrl && `${baseUrl}/sso/lectures/public-key`),
+    /** SMS endpoint that checks a user ID + password for the portal's login form. */
+    passwordLoginUrl: process.env.SMS_PASSWORD_LOGIN_URL || (baseUrl && `${baseUrl}/api/sso/lectures/login`),
     /** Shared secret (HS256). Only the dev mock uses it. */
     tokenSecret: process.env.SMS_TOKEN_SECRET ?? '',
     // The SMS signs iss = its own domain and aud = this portal's origin.

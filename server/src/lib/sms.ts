@@ -103,6 +103,28 @@ export async function verifySmsToken(token: string): Promise<SmsClaims> {
   }
 }
 
+/** Checks an SMS user ID + password with the school's SMS (server to server) and returns the verified identity. */
+export async function loginWithSmsPassword(userId: string, password: string): Promise<SmsClaims> {
+  let res: Response;
+  try {
+    res = await fetch(config.sms.passwordLoginUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ user_id: userId, password, audience: config.clientOrigin }),
+      signal: AbortSignal.timeout(10_000),
+      redirect: 'error',
+    });
+  } catch (err) {
+    console.warn('SMS password login unreachable:', (err as Error).message);
+    throw new HttpError(503, 'Could not reach the School Management System, please try again');
+  }
+  const body = (await res.json().catch(() => ({}))) as { token?: string; message?: string };
+  if (res.ok && body.token) return verifySmsToken(body.token);
+  if ([401, 403, 422, 429].includes(res.status)) throw new HttpError(res.status, body.message ?? 'Wrong user ID or password');
+  console.warn(`SMS password login failed: HTTP ${res.status} ${body.message ?? ''}`);
+  throw new HttpError(503, 'The School Management System could not log you in right now, please try again');
+}
+
 export function mapRole(smsRole: string): Role {
   const key = smsRole.toLowerCase();
   const mapped = (config.sms.roleMap[key] ?? config.sms.roleMap[smsRole] ?? key) as Role;

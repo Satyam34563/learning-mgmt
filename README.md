@@ -50,6 +50,10 @@ Anonymous visitors can browse published lectures unless `REQUIRE_LOGIN_TO_VIEW=t
 
 Each school runs **its own portal** at `https://<school>.lectures.managemyschools.in` (e.g. `dlcs.lectures.managemyschools.in`). Users sign in through that school's SMS at `https://<school>.managemyschools.in`. The portal never sees SMS passwords or passkeys.
 
+**Login form:** users type their **SMS user ID and password** on the portal's login page. The portal passes them, server to server, to `POST https://<school>.managemyschools.in/api/sso/lectures/login`. The SMS checks them and returns the same signed token described below. The portal never stores the password. Ten wrong passwords lock that user ID for 10 minutes. Portal-only accounts (created on Manage → Users) log in with their email address as the user ID.
+
+**Continue with School Management System** (for users already logged in to the SMS):
+
 1. A user clicks **Continue with School Management System**, which opens `/api/auth/sms/login` on the portal.
 2. The portal redirects to `https://<school>.managemyschools.in/sso/lectures` with `redirect_uri` and `state`.
 3. The SMS requires its normal login (ID number + password, plus a passkey for admins and operators). It checks that `redirect_uri` is this school's portal, then returns the user with a **60-second RS256 token**.
@@ -93,6 +97,9 @@ The portal address defaults to `https://{tenant}.lectures.managemyschools.in`. C
 The SMS then also accepts `http://localhost:<port>` callbacks. Tokens only ever go to the signed-in user's own machine, but turn this off once real portals are live.
 
 ## Deploy (self-hosted)
+
+Step-by-step for a school, including DNS, HTTPS and the SMS side: see **[DEPLOY.md](DEPLOY.md)**.
+
 
 On the server (Docker installed):
 

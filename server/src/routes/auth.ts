@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { User, ROLES } from '../models/index.js';
 import { AUTH_COOKIE, requireRole, signToken, type AuthUser } from '../middleware/auth.js';
 import { HttpError, isObjectId } from '../lib/http.js';
-import { callbackUrl, mockLoginPage, smsReady, upsertSmsUser, verifySmsToken } from '../lib/sms.js';
+import { callbackUrl, loginWithSmsPassword, mockLoginPage, smsReady, upsertSmsUser, verifySmsToken } from '../lib/sms.js';
 import { config, smsEnabled } from '../config.js';
 
 export const authRouter = Router();
@@ -36,7 +36,13 @@ const safeNext = (v: unknown) => (typeof v === 'string' && v.startsWith('/') && 
 
 /** Tells the client which login options to show. */
 authRouter.get('/options', async (_req, res) => {
-  res.json({ sms: await smsReady(), local: config.allowLocalLogin, requireLoginToView: config.requireLoginToView });
+  const sms = await smsReady();
+  res.json({
+    sms, // "continue with SMS" redirect button
+    userIdLogin: sms && !config.sms.mock, // user ID + password checked by the SMS
+    local: config.allowLocalLogin, // portal accounts (email + password)
+    requireLoginToView: config.requireLoginToView,
+  });
 });
 
 authRouter.get('/me', (req, res) => {
@@ -48,14 +54,43 @@ authRouter.post('/logout', (_req, res) => {
   res.status(204).end();
 });
 
-/* ---------- Local accounts (dev / fallback) ---------- */
+/* ---------- User ID + password form ---------- */
 
+/** Wrong-password brake per client IP, on top of the SMS's own per-user-ID limit. */
+const attempts = new Map<string, { count: number; until: number }>();
+function checkRate(ip: string) {
+  const now = Date.now();
+  const a = attempts.get(ip);
+  if (a && a.until > now && a.count >= 20) throw new HttpError(429, 'Too many attempts. Please wait a few minutes.');
+  if (!a || a.until <= now) attempts.set(ip, { count: 1, until: now + 10 * 60_000 });
+  else a.count++;
+  if (attempts.size > 10_000) for (const [k, v] of attempts) if (v.until <= now) attempts.delete(k);
+}
+
+/**
+ * The SMS user ID and password are checked by the school's SMS (never stored here); a portal account
+ * (created on Manage → Users, identified by email) is checked locally.
+ */
 authRouter.post('/login', async (req, res) => {
-  if (!config.allowLocalLogin) throw new HttpError(403, 'Please sign in with the School Management System');
-  const { email, password } = z.object({ email: z.email(), password: z.string().min(1) }).parse(req.body);
-  const user = await User.findOne({ email: email.toLowerCase(), source: 'local' }).select('+passwordHash');
+  const { userId, password } = z
+    .object({ userId: z.string().trim().min(1, 'Enter your user ID').max(100), password: z.string().min(1, 'Enter your password').max(200) })
+    .parse(req.body);
+  checkRate(req.ip ?? '');
+
+  const isPortalAccount = userId.includes('@');
+  const smsConfigured = !config.sms.mock && Boolean(config.sms.passwordLoginUrl);
+  if (!isPortalAccount && smsConfigured) {
+    // smsReady() makes sure the SMS key is there to verify the token with
+    if (!(await smsReady())) throw new HttpError(503, 'Could not reach the School Management System, please try again');
+    const claims = await loginWithSmsPassword(userId, password);
+    res.json(startSession(res, await upsertSmsUser(claims)));
+    return;
+  }
+
+  if (!config.allowLocalLogin) throw new HttpError(403, 'Portal accounts are turned off; use your school user ID');
+  const user = await User.findOne({ email: userId.toLowerCase(), source: 'local' }).select('+passwordHash');
   if (!user?.passwordHash || !(await bcrypt.compare(password, user.passwordHash))) {
-    throw new HttpError(401, 'Wrong email or password');
+    throw new HttpError(401, 'Wrong user ID or password');
   }
   user.lastLoginAt = new Date();
   await user.save();

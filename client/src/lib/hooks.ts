@@ -3,6 +3,7 @@ import { api, qs, type Chapter, type Me, type SchoolClass, type Subject, type Te
 
 export interface AuthOptions {
   sms: boolean;
+  userIdLogin: boolean;
   local: boolean;
   requireLoginToView: boolean;
 }
