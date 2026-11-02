@@ -11,8 +11,9 @@ module.exports = {
       name: 'online-learning-api',
       cwd: path.join(root, 'server'),
       script: 'dist/index.js',
-      node_args: '--env-file=.env',
-      instances: 1,
+      // absolute path: pm2 doesn't always resolve node args from cwd
+      node_args: `--env-file=${path.join(root, 'server/.env')}`,
+      exec_mode: 'fork', // one process; cluster mode isn't needed on a 1-CPU server
       max_memory_restart: '300M', // small server: restart rather than push the SMS into swap
       time: true,
       out_file: path.join(root, 'logs/api.log'),
