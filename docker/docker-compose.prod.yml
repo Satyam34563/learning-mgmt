@@ -1,0 +1,50 @@
+# Production stack: self-hosted MongoDB + API + Nginx (serving the React build).
+#   cp docker/.env.prod.example docker/.env.prod   # then fill in secrets
+#   docker compose -f docker/docker-compose.prod.yml --env-file docker/.env.prod up -d --build
+name: lectures
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+    volumes:
+      - mongo-data:/data/db
+      - ../backups:/backups
+    # Not published to the host: only the api container can reach it.
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      retries: 5
+
+  api:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    env_file: .env.prod
+    environment:
+      NODE_ENV: production
+      MONGO_URI: mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongo:27017/lectures?authSource=admin
+    volumes:
+      - uploads:/data/uploads
+      # The school's SMS public key; then set SMS_TOKEN_PUBLIC_KEY_FILE=/keys/sms-public.pem
+      # - ./sms-public.pem:/keys/sms-public.pem:ro
+
+  web:
+    build:
+      context: ..
+      dockerfile: client/Dockerfile
+    restart: unless-stopped
+    depends_on: [api]
+    ports:
+      - "${HTTP_PORT:-80}:80"
+
+volumes:
+  mongo-data:
+  uploads:
