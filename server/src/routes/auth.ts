@@ -69,7 +69,7 @@ function checkRate(ip: string) {
 
 /**
  * The SMS user ID and password are checked by the school's SMS (never stored here); a portal account
- * (created on Manage → Users, identified by email) is checked locally.
+ * (created on Manage → Users, identified by its email) is checked locally.
  */
 authRouter.post('/login', async (req, res) => {
   const { userId, password } = z
@@ -77,21 +77,20 @@ authRouter.post('/login', async (req, res) => {
     .parse(req.body);
   checkRate(req.ip ?? '');
 
-  const isPortalAccount = userId.includes('@');
-  const smsConfigured = !config.sms.mock && Boolean(config.sms.passwordLoginUrl);
-  if (!isPortalAccount && smsConfigured) {
+  // A portal-only account (Manage → Users) is checked here; everyone else, including SMS user IDs
+  // that happen to be email addresses, is checked by the SMS. Portal passwords never go to the SMS.
+  const user = config.allowLocalLogin
+    ? await User.findOne({ email: userId.toLowerCase(), source: 'local' }).select('+passwordHash')
+    : null;
+  if (!user?.passwordHash) {
+    if (config.sms.mock || !config.sms.passwordLoginUrl) throw new HttpError(401, 'Wrong user ID or password');
     // smsReady() makes sure the SMS key is there to verify the token with
     if (!(await smsReady())) throw new HttpError(503, 'Could not reach the School Management System, please try again');
     const claims = await loginWithSmsPassword(userId, password);
     res.json(startSession(res, await upsertSmsUser(claims)));
     return;
   }
-
-  if (!config.allowLocalLogin) throw new HttpError(403, 'Portal accounts are turned off; use your school user ID');
-  const user = await User.findOne({ email: userId.toLowerCase(), source: 'local' }).select('+passwordHash');
-  if (!user?.passwordHash || !(await bcrypt.compare(password, user.passwordHash))) {
-    throw new HttpError(401, 'Wrong user ID or password');
-  }
+  if (!(await bcrypt.compare(password, user.passwordHash))) throw new HttpError(401, 'Wrong user ID or password');
   user.lastLoginAt = new Date();
   await user.save();
   res.json(startSession(res, user));
