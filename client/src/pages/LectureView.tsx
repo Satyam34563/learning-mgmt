@@ -50,7 +50,7 @@ export default function LectureView() {
   const listName = lecture.chapter?.title ?? lecture.subject.name;
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px]">
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-6 xl:grid-cols-[minmax(0,1fr)_330px]">
       <div className="min-w-0">
         <nav className="mb-3 flex flex-wrap items-center gap-1 text-sm muted">
           {lecture.classes.map((c, i) => (
