@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { api, className, type Lecture, type Paged, type Progress } from '../lib/api';
+import { api, type Lecture, type Paged, type Progress } from '../lib/api';
 import { isStaff, useClasses, useMe, useSchool, useStats, useSubjects } from '../lib/hooks';
 import { Empty, LectureCard, LectureGrid, SubjectDot } from '../components/ui';
 import { Crest } from '../components/SchoolLogo';
+import ClassCard from '../components/ClassCard';
 
 export default function Home() {
   const { data: me } = useMe();
@@ -96,16 +97,9 @@ export default function Home() {
       {!!classes?.length && (
         <section>
           <SectionTitle title="Classes" />
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {classes?.map((c) => (
-              <Link
-                key={c._id}
-                to={`/classes/${c._id}`}
-                className={`card p-4 hover:border-accent/40 ${me?.class === c._id ? 'ring-2 ring-accent' : ''}`}
-              >
-                <div className="font-medium">{className(c)}</div>
-                <div className="mt-1 text-xs muted">{stats?.byClass[c._id] ?? 0} lectures</div>
-              </Link>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+            {classes.map((c) => (
+              <ClassCard key={c._id} cls={c} lectures={stats?.byClass[c._id] ?? 0} mine={me?.class === c._id} />
             ))}
           </div>
         </section>

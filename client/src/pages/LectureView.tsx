@@ -50,7 +50,7 @@ export default function LectureView() {
   const listName = lecture.chapter?.title ?? lecture.subject.name;
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px] 2xl:grid-cols-[minmax(0,1fr)_440px]">
       <div className="min-w-0">
         <nav className="mb-3 flex flex-wrap items-center gap-1 text-sm muted">
           {lecture.classes.map((c, i) => (
@@ -87,15 +87,18 @@ export default function LectureView() {
           </div>
         )}
 
-        {lecture.videoUrl ? (
-          <Player
-            url={lecture.videoUrl}
-            startAt={done ? 0 : progress.data?.positionSeconds}
-            onProgress={me ? (pos, dur) => save.mutate({ positionSeconds: Math.floor(pos), durationSeconds: Math.floor(dur) }) : undefined}
-          />
-        ) : (
-          <div className="grid aspect-video place-items-center rounded-lg bg-subtle text-sm muted">No video for this lecture</div>
-        )}
+        {/* On very wide screens, keep the whole 16:9 video within the screen height */}
+        <div className="mx-auto" style={{ maxWidth: 'calc((100vh - 13rem) * 16 / 9)' }}>
+          {lecture.videoUrl ? (
+            <Player
+              url={lecture.videoUrl}
+              startAt={done ? 0 : progress.data?.positionSeconds}
+              onProgress={me ? (pos, dur) => save.mutate({ positionSeconds: Math.floor(pos), durationSeconds: Math.floor(dur) }) : undefined}
+            />
+          ) : (
+            <div className="grid aspect-video place-items-center rounded-lg bg-subtle text-sm muted">No video for this lecture</div>
+          )}
+        </div>
 
         <div className="mt-5 flex flex-wrap items-start gap-3">
           <h1 className="flex-1">{lecture.title}</h1>

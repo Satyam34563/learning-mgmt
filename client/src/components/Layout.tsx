@@ -17,6 +17,9 @@ export default function Layout() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
+  // The lecture (video) page uses the whole screen; other pages keep a readable centred column.
+  const fullWidth = /^\/lectures\/[^/]+$/.test(location.pathname);
+  const container = fullWidth ? 'max-w-none px-4 lg:px-8' : 'max-w-6xl px-4';
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
 
@@ -56,7 +59,7 @@ export default function Layout() {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="school-band sticky top-0 z-20 text-white shadow-[0_2px_12px_rgb(20_40_82/0.25)]">
-        <div className="mx-auto flex h-16 max-w-6xl items-center gap-5 px-4">
+        <div className={`mx-auto flex h-16 items-center gap-5 ${container}`}>
           <Link to="/" className="flex min-w-0 items-center gap-3" title={school?.name ?? undefined}>
             <Crest size={38} glow={false} />
             <span className="min-w-0 leading-tight">
@@ -91,7 +94,7 @@ export default function Layout() {
         )}
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+      <main className={`mx-auto w-full flex-1 py-8 ${container}`}>
         <Outlet />
       </main>
 
