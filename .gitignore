@@ -9,3 +9,4 @@ backups/
 server/uploads/
 !.env.prod.example
 *.tsbuildinfo
+server/keys/

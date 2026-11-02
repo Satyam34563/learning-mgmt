@@ -20,7 +20,7 @@
  */
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
-import { config } from '../config.js';
+import { config, smsEnabled } from '../config.js';
 import { ClassModel, Teacher, User, ROLES, type Role } from '../models/index.js';
 import { HttpError } from './http.js';
 
@@ -39,17 +39,65 @@ export function callbackUrl() {
   return `${config.clientOrigin}/api/auth/sms/callback`;
 }
 
-export function verifySmsToken(token: string): SmsClaims {
-  const key = config.sms.tokenPublicKey || config.sms.tokenSecret;
+/* The SMS's public key, fetched from SMS_TOKEN_PUBLIC_KEY_URL and cached; refreshed hourly so a new key is picked up. */
+let fetchedKey: { pem: string; at: number } | undefined;
+const KEY_TTL_MS = 60 * 60 * 1000;
+
+async function smsPublicKey(forceRefresh = false): Promise<string> {
+  if (config.sms.tokenPublicKey) return config.sms.tokenPublicKey;
+  if (!forceRefresh && fetchedKey && Date.now() - fetchedKey.at < KEY_TTL_MS) return fetchedKey.pem;
   try {
-    const payload = jwt.verify(token, key, {
-      algorithms: config.sms.tokenPublicKey ? ['RS256'] : ['HS256'],
-      issuer: config.sms.issuer,
-      audience: config.sms.audience,
-      clockTolerance: 30, // seconds of clock drift allowed between the SMS and portal servers
-    });
-    return claimsSchema.parse(payload);
+    const res = await fetch(config.sms.publicKeyUrl, { signal: AbortSignal.timeout(5000) });
+    const pem = await res.text();
+    if (!res.ok || !pem.includes('BEGIN PUBLIC KEY')) throw new Error(`HTTP ${res.status}`);
+    fetchedKey = { pem, at: Date.now() };
+    return pem;
   } catch (err) {
+    console.warn(`Could not fetch SMS public key from ${config.sms.publicKeyUrl}:`, (err as Error).message);
+    if (fetchedKey) return fetchedKey.pem; // keep using the last good key while the SMS is unreachable
+    throw new HttpError(503, 'Could not reach the School Management System, please try again');
+  }
+}
+
+/** Whether SMS login can work right now: configured, and (for a fetched key) the SMS is reachable. Failures are remembered for a minute. */
+let lastFailure = 0;
+export async function smsReady(): Promise<boolean> {
+  if (!smsEnabled()) return false;
+  if (config.sms.mock || config.sms.tokenPublicKey) return true;
+  if (fetchedKey) return true;
+  if (Date.now() - lastFailure < 60_000) return false;
+  try {
+    await smsPublicKey();
+    return true;
+  } catch {
+    lastFailure = Date.now();
+    return false;
+  }
+}
+
+export async function verifySmsToken(token: string): Promise<SmsClaims> {
+  const verify = (key: string, algorithm: jwt.Algorithm) =>
+    claimsSchema.parse(
+      jwt.verify(token, key, {
+        algorithms: [algorithm],
+        issuer: config.sms.issuer,
+        audience: config.sms.audience,
+        clockTolerance: 30, // seconds of clock drift allowed between the SMS and portal servers
+      }),
+    );
+  try {
+    if (config.sms.mock) return verify(config.sms.tokenSecret, 'HS256');
+    try {
+      return verify(await smsPublicKey(), 'RS256');
+    } catch (err) {
+      // The SMS may have a new key; retry once with a fresh copy.
+      if (err instanceof jwt.JsonWebTokenError && err.message === 'invalid signature' && !config.sms.tokenPublicKey) {
+        return verify(await smsPublicKey(true), 'RS256');
+      }
+      throw err;
+    }
+  } catch (err) {
+    if (err instanceof HttpError) throw err;
     console.warn('Rejected SMS token:', (err as Error).message);
     throw new HttpError(401, 'Could not verify your School Management System login');
   }

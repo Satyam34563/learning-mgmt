@@ -33,8 +33,6 @@ services:
       MONGO_URI: mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongo:27017/lectures?authSource=admin
     volumes:
       - uploads:/data/uploads
-      # The school's SMS public key; then set SMS_TOKEN_PUBLIC_KEY_FILE=/keys/sms-public.pem
-      # - ./sms-public.pem:/keys/sms-public.pem:ro
 
   web:
     build:

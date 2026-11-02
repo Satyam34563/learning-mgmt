@@ -61,10 +61,15 @@ export default function Login() {
               <label className="label" htmlFor="password">Password</label>
               <input id="password" type="password" className="input" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
             </div>
-            <button className={opts.sms ? 'btn w-full' : 'btn-primary w-full'} disabled={busy}>{busy ? 'Logging in…' : 'Log in with email'}</button>
+            <button className={opts.sms ? 'btn w-full' : 'btn-primary w-full'} disabled={busy}>{busy ? 'Logging in…' : 'Log in with portal account'}</button>
+            {opts.sms && <p className="text-xs muted">For accounts created in this portal. Students and staff use the School Management System button above.</p>}
           </form>
         )}
-        {opts && !opts.sms && !opts.local && <p className="text-sm muted">No login method is configured. Contact the administrator.</p>}
+        {opts && !opts.sms && (
+          <p className="text-sm muted">
+            School Management System login isn't available right now.{opts.local ? ' Only portal accounts can log in.' : ' Contact the administrator.'}
+          </p>
+        )}
       </div>
     </div>
   );

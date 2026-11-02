@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { User, ROLES } from '../models/index.js';
 import { AUTH_COOKIE, requireRole, signToken, type AuthUser } from '../middleware/auth.js';
 import { HttpError, isObjectId } from '../lib/http.js';
-import { callbackUrl, mockLoginPage, upsertSmsUser, verifySmsToken } from '../lib/sms.js';
+import { callbackUrl, mockLoginPage, smsReady, upsertSmsUser, verifySmsToken } from '../lib/sms.js';
 import { config, smsEnabled } from '../config.js';
 
 export const authRouter = Router();
@@ -35,8 +35,8 @@ function startSession(res: Response, user: UserLike): AuthUser {
 const safeNext = (v: unknown) => (typeof v === 'string' && v.startsWith('/') && !v.startsWith('//') ? v : '/');
 
 /** Tells the client which login options to show. */
-authRouter.get('/options', (_req, res) => {
-  res.json({ sms: smsEnabled(), local: config.allowLocalLogin, requireLoginToView: config.requireLoginToView });
+authRouter.get('/options', async (_req, res) => {
+  res.json({ sms: await smsReady(), local: config.allowLocalLogin, requireLoginToView: config.requireLoginToView });
 });
 
 authRouter.get('/me', (req, res) => {
@@ -84,7 +84,7 @@ authRouter.get('/sms/login', (req, res) => {
 authRouter.get('/sms/callback', async (req, res) => {
   const next = readState(req.query.state);
   try {
-    const claims = verifySmsToken(String(req.query.token ?? ''));
+    const claims = await verifySmsToken(String(req.query.token ?? ''));
     startSession(res, await upsertSmsUser(claims));
     res.redirect(`${config.clientOrigin}${next}`);
   } catch (err) {

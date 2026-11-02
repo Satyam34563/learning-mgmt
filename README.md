@@ -48,14 +48,14 @@ Anonymous visitors can browse published lectures unless `REQUIRE_LOGIN_TO_VIEW=t
 
 ## SMS login
 
-Each school runs **its own portal**, and users sign in through that school's School Management System (the Laravel SMS at `<school>.managemyschools.in`). The portal never sees SMS passwords or passkeys.
+Each school runs **its own portal** at `https://<school>.lectures.managemyschools.in` (e.g. `dlcs.lectures.managemyschools.in`). Users sign in through that school's SMS at `https://<school>.managemyschools.in`. The portal never sees SMS passwords or passkeys.
 
 1. A user clicks **Continue with School Management System**, which opens `/api/auth/sms/login` on the portal.
-2. The portal redirects to `SMS_LOGIN_URL` (`https://<school>.managemyschools.in/sso/lectures`) with `redirect_uri` and `state`.
-3. The SMS requires its normal login (ID number + password, plus a passkey for admins and operators). It checks that `redirect_uri` is exactly this school's portal callback, then returns the user with a **60-second RS256 token**.
-4. The portal verifies the signature, issuer (`SMS_TOKEN_ISSUER`, the school's SMS domain) and audience (`SMS_TOKEN_AUDIENCE`, this portal's origin). It then creates or updates the user, sets its own session cookie, and returns the user to where they started.
+2. The portal redirects to `https://<school>.managemyschools.in/sso/lectures` with `redirect_uri` and `state`.
+3. The SMS requires its normal login (ID number + password, plus a passkey for admins and operators). It checks that `redirect_uri` is this school's portal, then returns the user with a **60-second RS256 token**.
+4. The portal verifies the token with the SMS public key, which it fetches from `/sso/lectures/public-key` and refreshes hourly. It also checks the issuer (the SMS domain) and audience (its own address). Then it creates or updates the user, sets its own session cookie, and returns them to where they started.
 
-Opening `/sso/lectures` from inside the SMS (e.g. from a "Lectures" menu link) runs the same flow in reverse, so users already logged in to the SMS land on the portal signed in.
+Opening `/sso/lectures` from inside the SMS (e.g. from a "Lectures" menu link) runs the same flow in reverse. The **Continue with School Management System** button only appears while the portal can reach the SMS key.
 
 **Token claims** (built by `LecturesSsoController` in the SMS):
 
@@ -73,20 +73,24 @@ Students are placed in the portal class whose **name (and section) match the SMS
 
 ### Setting up a school
 
-On the SMS server, once for all schools:
-
-```bash
-openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out storage/keys/lectures-sso-private.pem
-openssl pkey -in storage/keys/lectures-sso-private.pem -pubout -out storage/keys/lectures-sso-public.pem
-```
-
-Per school, add its portal to the SMS `.env`, then run `php artisan config:clear`:
+**SMS** (`.env`, then `php artisan config:clear`). The key pair is created automatically in `storage/keys/` on first use:
 
 ```
-LECTURES_SSO_PORTALS={"dps.managemyschools.in":"https://lectures.dps.edu.in"}
+LECTURES_SSO_TENANTS=dlcs            # comma separated; "*" for every school
 ```
 
-In that school's portal (`docker/.env.prod`), set `SMS_LOGIN_URL`, `SMS_TOKEN_ISSUER`, `SMS_TOKEN_AUDIENCE`, and the public key (`SMS_TOKEN_PUBLIC_KEY_FILE` or `SMS_TOKEN_PUBLIC_KEY`). Only the SMS holds the private key, so a portal's config can't be used to mint logins.
+The portal address defaults to `https://{tenant}.lectures.managemyschools.in`. Change it with `LECTURES_SSO_PORTAL_PATTERN`, or override one school with `LECTURES_SSO_PORTALS='{"dlcs.managemyschools.in":"https://…"}'`.
+
+**Portal** (`docker/.env.prod`): set `CLIENT_ORIGIN=https://dlcs.lectures.managemyschools.in`. The SMS address (`https://dlcs.managemyschools.in`) is derived from it, so there is nothing else to configure. Set `SMS_BASE_URL` only if the names don't follow that pattern.
+
+**DNS/TLS**: point `*.lectures.managemyschools.in` (or each school's name) at the portal server, with a matching certificate.
+
+### Testing locally against a live SMS
+
+1. In that SMS's `.env`, set `LECTURES_SSO_TENANTS=dlcs` and `LECTURES_SSO_ALLOW_LOCALHOST=true`, then run `php artisan config:clear`.
+2. In `server/.env`, set `SMS_BASE_URL=https://dlcs.managemyschools.in` and `SMS_MOCK=false`.
+
+The SMS then also accepts `http://localhost:<port>` callbacks. Tokens only ever go to the signed-in user's own machine, but turn this off once real portals are live.
 
 ## Deploy (self-hosted)
 
