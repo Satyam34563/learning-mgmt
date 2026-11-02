@@ -159,7 +159,7 @@ r.get('/:id/playlist', async (req, res) => {
   const scope = lecture.chapter
     ? { chapter: lecture.chapter }
     : { subject: lecture.subject, chapter: null, classes: { $in: lecture.classes } };
-  const items = await Lecture.find({ ...scope, ...visible }, { title: 1, durationMinutes: 1, status: 1 }).sort(order).limit(1000).lean();
+  const items = await Lecture.find({ ...scope, ...visible }, { title: 1, videoUrl: 1, durationMinutes: 1, status: 1 }).sort(order).limit(1000).lean();
   const index = items.findIndex((l) => String(l._id) === String(lecture._id));
 
   const PER_CHAPTER = 3;
@@ -192,7 +192,7 @@ r.get('/:id/playlist', async (req, res) => {
   res.json({
     index, // 0-based; -1 if the lecture isn't in its own list (shouldn't happen)
     total: items.length,
-    items: items.map((l) => ({ _id: l._id, title: l.title, durationMinutes: l.durationMinutes, status: l.status })),
+    items: items.map((l) => ({ _id: l._id, title: l.title, videoUrl: l.videoUrl, durationMinutes: l.durationMinutes, status: l.status })),
     related: relatedIds.map((id) => byId.get(String(id))).filter(Boolean),
   });
 });

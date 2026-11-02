@@ -4,13 +4,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, className, formatBytes, formatDate, type Lecture, type Progress } from '../lib/api';
 import { isStaff, useMe } from '../lib/hooks';
 import Player, { isTrackable } from '../components/Player';
+import VideoThumb from '../components/VideoThumb';
 import { BookmarkButton, ErrorBox, LectureCard, LectureGrid, Spinner, SubjectDot } from '../components/ui';
 
 /** The lecture's chapter in order (for "Video N of M" and the numbered list) plus related videos. */
 interface Playlist {
   index: number;
   total: number;
-  items: { _id: string; title: string; durationMinutes?: number; status: Lecture['status'] }[];
+  items: { _id: string; title: string; videoUrl?: string; durationMinutes?: number; status: Lecture['status'] }[];
   related: Lecture[];
 }
 
@@ -192,6 +193,7 @@ function ChapterList({ items, current }: { items: Playlist['items']; current: st
               <span className={`w-6 shrink-0 pt-px text-right text-xs tabular-nums ${playing ? 'font-bold text-accent' : 'muted'}`}>
                 {playing ? '▶' : i + 1}
               </span>
+              <VideoThumb url={l.videoUrl} size="sm" className={`w-20 rounded ${playing ? 'ring-2 ring-accent' : ''}`} />
               <span className="min-w-0 flex-1">
                 <span className={`line-clamp-2 ${playing ? 'font-semibold text-accent' : ''}`}>{l.title}</span>
                 <span className="mt-0.5 block text-xs muted">

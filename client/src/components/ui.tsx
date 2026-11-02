@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useBookmarks } from '../lib/hooks';
+import VideoThumb from './VideoThumb';
 import { className, formatDate, type Lecture } from '../lib/api';
 
 export function SubjectDot({ color }: { color?: string }) {
@@ -68,29 +69,25 @@ export function ProgressBar({ value }: { value: number }) {
 
 export function LectureCard({ lecture, progress }: { lecture: Lecture; progress?: number }) {
   return (
-    <Link to={`/lectures/${lecture._id}`} className="card group flex flex-col p-4 transition hover:border-accent/40">
-      <div className="mb-2 flex items-center gap-2 text-xs muted">
-        <SubjectDot color={lecture.subject?.color} />
-        <span className="truncate">{lecture.subject?.name}</span>
-        {lecture.chapter && <span className="truncate">· Ch {lecture.chapter.number}</span>}
-        {lecture.status === 'draft' && <span className="chip ml-auto">Draft</span>}
-        <span className={lecture.status === 'draft' ? '' : 'ml-auto'}>
-          <BookmarkButton id={lecture._id} />
-        </span>
-      </div>
-      <h3 className="line-clamp-2 font-medium group-hover:underline">{lecture.title}</h3>
-      <p className="mt-1 text-xs muted">{lecture.classes.map(className).join(', ')}</p>
-      <div className="mt-auto flex items-center gap-2 pt-3 text-xs muted">
-        {lecture.teacher && <span className="truncate">{lecture.teacher.name}</span>}
-        <span className="ml-auto shrink-0">
-          {[lecture.durationMinutes && `${lecture.durationMinutes} min`, formatDate(lecture.lectureDate)].filter(Boolean).join(' · ')}
-        </span>
-      </div>
-      {progress !== undefined && (
-        <div className="mt-3">
-          <ProgressBar value={progress} />
+    <Link to={`/lectures/${lecture._id}`} className="card group flex flex-col overflow-hidden transition hover:border-accent/40">
+      <VideoThumb url={lecture.videoUrl} minutes={lecture.durationMinutes} progress={progress} className="transition-opacity group-hover:opacity-90" />
+      <div className="flex flex-1 flex-col p-4">
+        <div className="mb-2 flex items-center gap-2 text-xs muted">
+          <SubjectDot color={lecture.subject?.color} />
+          <span className="truncate">{lecture.subject?.name}</span>
+          {lecture.chapter && <span className="truncate">· {lecture.chapter.title}</span>}
+          {lecture.status === 'draft' && <span className="chip ml-auto">Draft</span>}
+          <span className={lecture.status === 'draft' ? '' : 'ml-auto'}>
+            <BookmarkButton id={lecture._id} />
+          </span>
         </div>
-      )}
+        <h3 className="line-clamp-2 font-medium group-hover:underline">{lecture.title}</h3>
+        <p className="mt-1 text-xs muted">{lecture.classes.map(className).join(', ')}</p>
+        <div className="mt-auto flex items-center gap-2 pt-3 text-xs muted">
+          {lecture.teacher && <span className="truncate">{lecture.teacher.name}</span>}
+          {lecture.lectureDate && <span className="ml-auto shrink-0">{formatDate(lecture.lectureDate)}</span>}
+        </div>
+      </div>
     </Link>
   );
 }

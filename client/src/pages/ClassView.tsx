@@ -3,6 +3,7 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { api, className, qs, type Chapter, type Lecture, type Paged } from '../lib/api';
 import { useChapters, useClasses, useSubjects } from '../lib/hooks';
 import { Empty, PageHeader, Spinner, SubjectDot } from '../components/ui';
+import VideoThumb from '../components/VideoThumb';
 
 interface ClassStats {
   total: number;
@@ -143,9 +144,7 @@ function ChapterSection({ chapter, count, open, onToggle, query, showNumber }: {
                   <li key={l._id}>
                     <Link to={`/lectures/${l._id}`} className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-subtle">
                       <span className="w-7 shrink-0 text-right text-xs muted tabular-nums">{i + 1}</span>
-                      <span className="grid size-7 shrink-0 place-items-center rounded-full bg-subtle text-accent">
-                        <svg viewBox="0 0 16 16" className="size-3" fill="currentColor"><path d="M5 3.5v9l7-4.5z" /></svg>
-                      </span>
+                      <VideoThumb url={l.videoUrl} size="sm" className="w-24 rounded-md" />
                       <span className="flex-1 truncate">{l.title}</span>
                       {l.status === 'draft' && <span className="chip">Draft</span>}
                       <span className="hidden muted sm:inline">{l.teacher?.name}</span>
