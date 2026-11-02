@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { ClassModel, Subject, Chapter, Teacher, Lecture, Progress, User } from '../models/index.js';
-import { requireRole } from '../middleware/auth.js';
+import { Types } from 'mongoose';
+import { isStaff, requireRole } from '../middleware/auth.js';
+import { HttpError, isObjectId } from '../lib/http.js';
 
 const r = Router();
 
@@ -19,6 +21,24 @@ r.get('/', async (_req, res) => {
     Lecture.aggregate([{ $match: published }, { $group: { _id: '$subject', count: { $sum: 1 } } }]),
   ]);
   res.json({ lectures, classes, subjects, teachers, byClass: toMap(byClass), bySubject: toMap(bySubject) });
+});
+
+/** Lecture counts for one class, per subject and per chapter: the class page's sidebar and chapter list. */
+r.get('/class/:classId', async (req, res) => {
+  if (!isObjectId(req.params.classId)) throw new HttpError(400, 'Invalid class');
+  const match = { classes: new Types.ObjectId(req.params.classId), ...(isStaff(req.user) ? {} : published) };
+  const [row] = await Lecture.aggregate<{ total: { n: number }[]; bySubject: { _id: unknown; n: number }[]; byChapter: { _id: unknown; n: number }[] }>([
+    { $match: match },
+    {
+      $facet: {
+        total: [{ $count: 'n' }],
+        bySubject: [{ $group: { _id: '$subject', n: { $sum: 1 } } }],
+        byChapter: [{ $group: { _id: '$chapter', n: { $sum: 1 } } }],
+      },
+    },
+  ]);
+  const map = (rows: { _id: unknown; n: number }[]) => Object.fromEntries(rows.map((x) => [String(x._id), x.n]));
+  res.json({ total: row?.total[0]?.n ?? 0, bySubject: map(row?.bySubject ?? []), byChapter: map(row?.byChapter ?? []) });
 });
 
 /** Chapters with no published lecture yet: what still needs recording. Staff only. */

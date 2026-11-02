@@ -14,7 +14,7 @@ import statsRouter from './routes/stats.js';
 import meRouter from './routes/me.js';
 import uploadsRouter from './routes/uploads.js';
 import importRouter from './routes/import.js';
-import { getSchoolBranding } from './lib/school.js';
+import { getSchoolBranding, getSchoolIcon } from './lib/school.js';
 
 export function createApp() {
   const app = express();
@@ -33,6 +33,10 @@ export function createApp() {
   // Public on purpose: the login page shows the school's name and logo.
   app.get('/api/school', async (_req, res) => {
     res.set('Cache-Control', 'public, max-age=300').json(await getSchoolBranding());
+  });
+  app.get('/api/school/icon', async (_req, res) => {
+    const { body, type } = await getSchoolIcon();
+    res.set({ 'Content-Type': type, 'Cache-Control': 'public, max-age=3600', 'Cross-Origin-Resource-Policy': 'same-origin' }).send(body);
   });
 
   app.use('/api/auth', authRouter);

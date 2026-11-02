@@ -125,6 +125,16 @@ export const api = {
   del: <T = void>(url: string) => request<T>('DELETE', url),
 };
 
+/** Every page of a paged list (100 per request), up to `max` items. */
+export async function getAllPages<T>(url: string, params: Record<string, string | number | undefined>, max = 2000): Promise<Paged<T>> {
+  const items: T[] = [];
+  for (let page = 1; ; page++) {
+    const res = await api.get<Paged<T>>(`${url}${qs({ ...params, limit: 100, page })}`);
+    items.push(...res.items);
+    if (page >= res.pages || items.length >= max) return { items, total: res.total, page: 1, pages: 1 };
+  }
+}
+
 /** Builds a query string, skipping empty values. */
 export function qs(params: Record<string, string | number | undefined | null>) {
   const s = new URLSearchParams();

@@ -23,8 +23,8 @@ declare global {
 
 export const AUTH_COOKIE = 'lp_token';
 
-export function signToken(user: AuthUser) {
-  return jwt.sign(user, config.jwtSecret, { expiresIn: '7d' });
+export function signToken(user: AuthUser, expiresIn: jwt.SignOptions['expiresIn'] = '7d') {
+  return jwt.sign(user, config.jwtSecret, { expiresIn });
 }
 
 /** Attaches req.user when a valid token cookie is present; never rejects. */

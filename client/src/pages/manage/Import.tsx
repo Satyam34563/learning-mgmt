@@ -8,8 +8,20 @@ interface ImportResult {
   total: number;
   valid: number;
   imported: number;
+  toCreate: Counts;
+  created: Counts;
   errors: { row: number; message: string }[];
 }
+type Counts = Record<'subjects' | 'classes' | 'chapters' | 'teachers', number>;
+
+const SINGULAR: Record<keyof Counts, string> = { subjects: 'subject', classes: 'class', chapters: 'chapter', teachers: 'teacher' };
+
+/** "2 subjects, 1 class" */
+const describe = (c?: Counts) =>
+  (Object.entries(c ?? {}) as [keyof Counts, number][])
+    .filter(([, n]) => n > 0)
+    .map(([k, n]) => `${n} ${n === 1 ? SINGULAR[k] : k}`)
+    .join(', ');
 
 export default function Import() {
   const { data: me } = useMe();
@@ -46,7 +58,12 @@ export default function Import() {
       <PageHeader
         title="Bulk import"
         subtitle="Upload a CSV or Excel (.xlsx) file to add many lectures at once."
-        actions={<a className="btn" href="/api/import/lectures/template">Download template</a>}
+        actions={
+          <>
+            <a className="btn-primary" href="/api/import/lectures/template.xlsx" download>Download Excel template</a>
+            <a className="btn" href="/api/import/lectures/template" download>CSV</a>
+          </>
+        }
       />
 
       <div className="card space-y-4 p-5">
@@ -60,7 +77,7 @@ export default function Import() {
         <input
           type="file"
           accept=".csv,.xlsx"
-          className="block text-sm file:mr-3 file:rounded-md file:border file:border-zinc-200 file:bg-white file:px-3 file:py-1.5 file:text-sm dark:file:border-zinc-800 dark:file:bg-zinc-900"
+          className="block text-sm file:mr-3 file:rounded-md file:border file:border-line file:bg-card file:px-3 file:py-1.5 file:text-sm "
           onChange={(e) => { setFile(e.target.files?.[0] ?? null); setResult(null); setChecked(false); }}
         />
         {me?.role === 'admin' && (
@@ -82,8 +99,10 @@ export default function Import() {
         <div className="mt-6 space-y-3">
           <p className="text-sm">
             {result.imported
-              ? `✓ Imported ${result.imported} lecture${result.imported === 1 ? '' : 's'}.`
-              : `${result.valid} of ${result.total} rows are valid.${checked ? ' Ready to import.' : ''}`}
+              ? `✓ Imported ${result.imported} lecture${result.imported === 1 ? '' : 's'}.${describe(result.created) ? ` Also created ${describe(result.created)}.` : ''}`
+              : `${result.valid} of ${result.total} rows are valid.${checked ? ' Ready to import.' : ''}${
+                  checked && describe(result.toCreate) ? ` Importing will also create ${describe(result.toCreate)}.` : ''
+                }`}
           </p>
           {result.errors.length > 0 && (
             <table className="table">

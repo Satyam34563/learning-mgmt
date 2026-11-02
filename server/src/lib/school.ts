@@ -45,3 +45,30 @@ export async function getSchoolBranding(): Promise<SchoolBranding> {
     building_url: sms?.building_url ?? null,
   };
 }
+
+/* The school logo as the site icon, served from the portal itself so the browser tab, bookmarks and
+   home-screen shortcuts show it from the first load. Cached in memory; falls back to a neutral icon. */
+const FALLBACK_ICON = Buffer.from(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#18181b"/><path d="M12 9.5v13l11-6.5z" fill="#fff"/></svg>',
+);
+const MAX_ICON_BYTES = 2 * 1024 * 1024;
+let icon: { body: Buffer; type: string; url: string | null; at: number } | undefined;
+
+export async function getSchoolIcon(): Promise<{ body: Buffer; type: string }> {
+  const { logo_url: url } = await getSchoolBranding();
+  if (icon && icon.url === url && Date.now() - icon.at < TTL_MS) return icon;
+  if (url) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+      const type = res.headers.get('content-type') ?? '';
+      const body = Buffer.from(await res.arrayBuffer());
+      if (!res.ok || !type.startsWith('image/') || body.length > MAX_ICON_BYTES) throw new Error(`HTTP ${res.status} ${type}`);
+      icon = { body, type, url, at: Date.now() };
+      return icon;
+    } catch (err) {
+      console.warn(`Could not fetch school logo from ${url}:`, (err as Error).message);
+      if (icon?.url === url) return icon; // keep the last good copy
+    }
+  }
+  return { body: FALLBACK_ICON, type: 'image/svg+xml' };
+}

@@ -36,8 +36,8 @@ function Panel({ title, error, form, children }: { title: string; error?: unknow
     <section className="card p-5">
       <h2 className="mb-3 text-base">{title}</h2>
       <ErrorBox error={error} />
-      <ul className="max-h-80 divide-y divide-zinc-100 overflow-y-auto text-sm dark:divide-zinc-800">{children}</ul>
-      {form && <div className="mt-3 border-t border-zinc-100 pt-3 dark:border-zinc-800">{form}</div>}
+      <ul className="max-h-80 divide-y divide-line overflow-y-auto text-sm">{children}</ul>
+      {form && <div className="mt-3 border-t border-line pt-3">{form}</div>}
     </section>
   );
 }
@@ -46,7 +46,7 @@ function Row({ children, onDelete }: { children: ReactNode; onDelete?: () => voi
   return (
     <li className="flex items-center gap-2 py-2">
       <div className="flex min-w-0 flex-1 items-center gap-2">{children}</div>
-      {onDelete && <button className="text-xs muted hover:text-red-600" onClick={() => confirm('Delete this item?') && onDelete()}>Delete</button>}
+      {onDelete && <button className="text-xs muted hover:text-danger-ink" onClick={() => confirm('Delete this item?') && onDelete()}>Delete</button>}
     </li>
   );
 }
@@ -92,7 +92,7 @@ function Subjects({ canEdit }: { canEdit: boolean }) {
       error={create.error ?? update.error ?? remove.error}
       form={canEdit && (
         <form onSubmit={submit} className="flex gap-2">
-          <input type="color" className="h-8 w-10 shrink-0 cursor-pointer rounded border border-zinc-200 dark:border-zinc-800" value={color} onChange={(e) => setColor(e.target.value)} />
+          <input type="color" className="h-8 w-10 shrink-0 cursor-pointer rounded border border-line" value={color} onChange={(e) => setColor(e.target.value)} />
           <input className="input" placeholder="Computer Science" value={name} onChange={(e) => setName(e.target.value)} required />
           <button className="btn-primary">Add</button>
         </form>
@@ -123,7 +123,9 @@ function Chapters() {
   const [classIds, setClassIds] = useState<string[]>([]);
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    const number = (data?.reduce((m, c) => Math.max(m, c.number), 0) ?? 0) + 1;
+    // numbered within the chosen class(es), not across the whole subject
+    const sameClass = (data ?? []).filter((c) => !classIds.length || (c.classes as string[]).some((id) => classIds.includes(id)));
+    const number = sameClass.reduce((m, c) => Math.max(m, c.number), 0) + 1;
     create.mutate({ subject, title, classes: classIds, number }, { onSuccess: () => setTitle('') });
   };
   return (

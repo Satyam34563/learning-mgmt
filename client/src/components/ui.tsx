@@ -8,7 +8,7 @@ export function SubjectDot({ color }: { color?: string }) {
 }
 
 export function Empty({ children }: { children: ReactNode }) {
-  return <div className="rounded-lg border border-dashed border-zinc-200 p-8 text-center text-sm muted dark:border-zinc-800">{children}</div>;
+  return <div className="rounded-lg border border-dashed border-line p-8 text-center text-sm muted">{children}</div>;
 }
 
 export function Spinner() {
@@ -18,7 +18,7 @@ export function Spinner() {
 export function ErrorBox({ error }: { error: unknown }) {
   if (!error) return null;
   return (
-    <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+    <div className="rounded-md rounded-lg bg-danger-bg px-3.5 py-3 text-sm text-danger-ink">
       {error instanceof Error ? error.message : String(error)}
     </div>
   );
@@ -49,10 +49,10 @@ export function BookmarkButton({ id }: { id: string }) {
         e.preventDefault();
         toggle(id, !on);
       }}
-      className="rounded p-1 text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+      className="rounded p-1 text-muted hover:text-accent"
     >
       <svg viewBox="0 0 24 24" className="size-4" fill={on ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-        <path d="M6 3h12v18l-6-4-6 4z" className={on ? 'text-zinc-900 dark:text-white' : ''} />
+        <path d="M6 3h12v18l-6-4-6 4z" className={on ? 'text-accent' : ''} />
       </svg>
     </button>
   );
@@ -60,15 +60,15 @@ export function BookmarkButton({ id }: { id: string }) {
 
 export function ProgressBar({ value }: { value: number }) {
   return (
-    <div className="h-1 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
-      <div className="h-full bg-zinc-900 dark:bg-white" style={{ width: `${Math.min(100, Math.round(value * 100))}%` }} />
+    <div className="h-1 w-full overflow-hidden rounded-full bg-subtle">
+      <div className="h-full bg-accent" style={{ width: `${Math.min(100, Math.round(value * 100))}%` }} />
     </div>
   );
 }
 
 export function LectureCard({ lecture, progress }: { lecture: Lecture; progress?: number }) {
   return (
-    <Link to={`/lectures/${lecture._id}`} className="card group flex flex-col p-4 transition hover:border-zinc-300 dark:hover:border-zinc-700">
+    <Link to={`/lectures/${lecture._id}`} className="card group flex flex-col p-4 transition hover:border-accent/40">
       <div className="mb-2 flex items-center gap-2 text-xs muted">
         <SubjectDot color={lecture.subject?.color} />
         <span className="truncate">{lecture.subject?.name}</span>

@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, className, type Lecture, type Paged, type Progress } from '../lib/api';
-import { useClasses, useMe, useSchool, useStats, useSubjects } from '../lib/hooks';
-import { LectureCard, LectureGrid, SubjectDot } from '../components/ui';
+import { isStaff, useClasses, useMe, useSchool, useStats, useSubjects } from '../lib/hooks';
+import { Empty, LectureCard, LectureGrid, SubjectDot } from '../components/ui';
+import { Crest } from '../components/SchoolLogo';
 
 export default function Home() {
   const { data: me } = useMe();
@@ -22,12 +23,34 @@ export default function Home() {
 
   return (
     <div className="space-y-12">
-      <section>
-        {school?.name && <p className="text-sm muted">{school.name}</p>}
-        <h1 className="text-3xl">{me ? `Welcome back, ${me.name.split(' ')[0]}` : 'Lectures'}</h1>
-        <p className="mt-2 muted">
-          {stats ? `${stats.lectures} lectures across ${stats.classes} classes and ${stats.subjects} subjects.` : ' '}
-        </p>
+      {/* Navy banner like the SMS login: building photo under a navy wash, crest, greeting, counts */}
+      <section className="school-band relative isolate overflow-hidden rounded-2xl px-6 py-8 text-white shadow-[0_12px_36px_rgb(16_28_56/0.18)] sm:px-10 sm:py-10">
+        {school?.building_url && (
+          <>
+            <img src={school.building_url} alt="" className="absolute inset-0 -z-20 size-full object-cover" />
+            <div className="school-band absolute inset-0 -z-10 opacity-[0.88]" />
+          </>
+        )}
+        <div className="pointer-events-none absolute inset-3 rounded-xl border border-gold/30" />
+        <div className="relative flex flex-col items-start gap-6 sm:flex-row sm:items-center">
+          <Crest size={84} />
+          <div className="min-w-0">
+            {school?.name && (
+              <p className="text-xs font-semibold tracking-[0.18em] text-gold-soft uppercase">{school.name}</p>
+            )}
+            <h1 className="mt-1 text-3xl text-white sm:text-4xl">
+              {me ? `Welcome back, ${me.name.split(' ')[0]}` : 'Lectures'}
+            </h1>
+            <p className="mt-2 text-white/75">
+              {stats
+                ? `${stats.lectures} lectures across ${stats.classes} classes and ${stats.subjects} subjects.`
+                : ' '}
+            </p>
+          </div>
+          <Link to="/lectures" className="btn-base border-gold bg-gold text-navy-deep hover:bg-gold-soft sm:ml-auto">
+            Browse lectures
+          </Link>
+        </div>
       </section>
 
       {!!cont.data?.length && (
@@ -35,47 +58,84 @@ export default function Home() {
           <SectionTitle title="Continue watching" to="/me" />
           <LectureGrid>
             {cont.data.slice(0, 3).map((p) => (
-              <LectureCard key={p._id} lecture={p.lecture} progress={p.durationSeconds ? p.positionSeconds / p.durationSeconds : 0} />
+              <LectureCard
+                key={p._id}
+                lecture={p.lecture}
+                progress={p.durationSeconds ? p.positionSeconds / p.durationSeconds : 0}
+              />
             ))}
           </LectureGrid>
         </section>
       )}
 
-      <section>
-        <SectionTitle title="Classes" />
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          {classes?.map((c) => (
-            <Link
-              key={c._id}
-              to={`/classes/${c._id}`}
-              className={`card p-4 hover:border-zinc-300 dark:hover:border-zinc-700 ${me?.class === c._id ? 'ring-2 ring-zinc-900 dark:ring-white' : ''}`}
-            >
-              <div className="font-medium">{className(c)}</div>
-              <div className="mt-1 text-xs muted">{stats?.byClass[c._id] ?? 0} lectures</div>
-            </Link>
-          ))}
-        </div>
-      </section>
+      {/* A school that hasn't added anything yet: one clear note instead of empty sections */}
+      {classes && subjects && recent.data && !classes.length && !subjects.length && !recent.data.items.length && (
+        <Empty>
+          {isStaff(me) ? (
+            <>
+              No lectures yet. Start by adding the school's{' '}
+              <Link className="link" to="/manage/catalog">
+                classes, subjects and chapters
+              </Link>
+              , then{' '}
+              <Link className="link" to="/manage/lectures/new">
+                add a lecture
+              </Link>{' '}
+              or{' '}
+              <Link className="link" to="/manage/import">
+                import many at once
+              </Link>
+              .
+            </>
+          ) : (
+            'No lectures have been added yet. They will appear here as soon as the school adds them.'
+          )}
+        </Empty>
+      )}
 
-      <section>
-        <SectionTitle title="Subjects" />
-        <div className="flex flex-wrap gap-2">
-          {subjects?.map((s) => (
-            <Link key={s._id} to={`/lectures?subject=${s._id}`} className="btn">
-              <SubjectDot color={s.color} />
-              {s.name}
-              <span className="muted">{stats?.bySubject[s._id] ?? 0}</span>
-            </Link>
-          ))}
-        </div>
-      </section>
+      {!!classes?.length && (
+        <section>
+          <SectionTitle title="Classes" />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            {classes?.map((c) => (
+              <Link
+                key={c._id}
+                to={`/classes/${c._id}`}
+                className={`card p-4 hover:border-accent/40 ${me?.class === c._id ? 'ring-2 ring-accent' : ''}`}
+              >
+                <div className="font-medium">{className(c)}</div>
+                <div className="mt-1 text-xs muted">{stats?.byClass[c._id] ?? 0} lectures</div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
-      <section>
-        <SectionTitle title="Recently added" to="/lectures?sort=recent" />
-        <LectureGrid>
-          {recent.data?.items.map((l) => <LectureCard key={l._id} lecture={l} />)}
-        </LectureGrid>
-      </section>
+      {!!subjects?.length && (
+        <section>
+          <SectionTitle title="Subjects" />
+          <div className="flex flex-wrap gap-2">
+            {subjects?.map((s) => (
+              <Link key={s._id} to={`/lectures?subject=${s._id}`} className="btn">
+                <SubjectDot color={s.color} />
+                {s.name}
+                <span className="muted">{stats?.bySubject[s._id] ?? 0}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {!!recent.data?.items.length && (
+        <section>
+          <SectionTitle title="Recently added" to="/lectures?sort=recent" />
+          <LectureGrid>
+            {recent.data.items.map((l) => (
+              <LectureCard key={l._id} lecture={l} />
+            ))}
+          </LectureGrid>
+        </section>
+      )}
     </div>
   );
 }
@@ -84,7 +144,11 @@ function SectionTitle({ title, to }: { title: string; to?: string }) {
   return (
     <div className="mb-3 flex items-baseline justify-between">
       <h2>{title}</h2>
-      {to && <Link to={to} className="text-sm muted hover:underline">View all</Link>}
+      {to && (
+        <Link to={to} className="text-sm muted hover:underline">
+          View all
+        </Link>
+      )}
     </div>
   );
 }

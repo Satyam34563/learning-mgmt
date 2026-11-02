@@ -140,7 +140,7 @@ export default function LectureForm() {
                   type="button"
                   key={c._id}
                   onClick={() => set('classes', on ? f.classes.filter((x) => x !== c._id) : [...f.classes, c._id])}
-                  className={`rounded-md border px-3 py-1 text-sm ${on ? 'border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-zinc-900' : 'border-zinc-200 dark:border-zinc-800'}`}
+                  className={`rounded-md border px-3 py-1 text-sm ${on ? 'border-accent bg-accent text-on-accent' : 'border-line'}`}
                 >
                   {className(c)}
                 </button>
@@ -211,7 +211,7 @@ export default function LectureForm() {
         </div>
       </Section>
 
-      <div className="flex items-center gap-3 border-t border-zinc-200 pt-6 dark:border-zinc-800">
+      <div className="flex items-center gap-3 border-t border-line pt-6">
         <select className="input w-auto" value={f.status} onChange={(e) => set('status', e.target.value as FormState['status'])}>
           <option value="published">Published</option>
           <option value="draft">Draft (staff only)</option>

@@ -9,11 +9,13 @@
     "db:up": "docker compose -f docker/docker-compose.dev.yml up -d",
     "db:down": "docker compose -f docker/docker-compose.dev.yml down",
     "dev": "concurrently -n api,web -c blue,green \"npm run dev -w server\" \"npm run dev -w client\"",
-    "seed": "npm run seed -w server",
     "build": "npm run build -w server && npm run build -w client",
     "typecheck": "npm run typecheck -w server && npm run typecheck -w client",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "seed:demo": "npm run seed:demo -w server",
+    "seed:admin": "npm run seed:admin -w server",
+    "import-template": "npm run import-template -w server --"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

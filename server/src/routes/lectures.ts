@@ -96,13 +96,15 @@ r.get('/', async (req, res) => {
   const search = typeof q.q === 'string' ? q.q.trim() : '';
   if (search) filter.$text = { $search: search };
 
+  // _id last: a stable order for pagination, and it follows insert order, so bulk-imported lectures
+  // (same createdAt, often no date) keep the order of the spreadsheet.
   const sorts: Record<string, Record<string, 1 | -1>> = {
-    newest: { lectureDate: -1, createdAt: -1 },
-    oldest: { lectureDate: 1, createdAt: 1 },
-    timetable: { lectureDate: 1, period: 1 },
-    recent: { createdAt: -1 },
-    title: { title: 1 },
-    popular: { views: -1 },
+    newest: { lectureDate: -1, createdAt: -1, _id: -1 },
+    oldest: { lectureDate: 1, createdAt: 1, _id: 1 },
+    timetable: { lectureDate: 1, period: 1, _id: 1 },
+    recent: { createdAt: -1, _id: -1 },
+    title: { title: 1, _id: 1 },
+    popular: { views: -1, _id: 1 },
   };
   const sort = search && !q.sort ? { score: { $meta: 'textScore' } } : (sorts[String(q.sort)] ?? sorts.newest);
 

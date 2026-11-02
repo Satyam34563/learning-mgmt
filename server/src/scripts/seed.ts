@@ -1,8 +1,9 @@
 /**
- * Seeds sample classes, subjects, chapters, teachers and lectures, plus an admin login.
- * Safe to re-run: it wipes the lecture-related collections first (users are kept).
- *   npm run seed            -> sample data + admin, teacher@school.local, student@school.local
- *   npm run seed -- --admin -> only ensure the admin account exists
+ * DEMO DATA for trying the portal locally: sample classes, subjects, chapters, teachers and lectures, plus
+ * demo accounts. It WIPES all classes, subjects, chapters, teachers, lectures, progress and bookmarks first,
+ * so never run it against a school's real data.
+ *   npm run seed:demo   -> sample school + admin@school.local, teacher@school.local, student@school.local
+ *   npm run seed:admin  -> only make sure the local admin (SEED_ADMIN_EMAIL) exists; touches nothing else
  */
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';

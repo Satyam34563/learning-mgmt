@@ -17,14 +17,14 @@ Needs Node 24+ and Docker.
 npm install
 cp server/.env.example server/.env
 npm run db:up       # MongoDB in Docker on 127.0.0.1:27017
-npm run seed        # sample classes, subjects, chapters, lectures and demo accounts
 npm run dev         # API on :4000, web on http://dlcs.lectures.localhost:5173
 ```
 
-Demo accounts (password `admin12345`): `admin@school.local`, `teacher@school.local`, `student@school.local`.
-With `SMS_MOCK=true` (the dev default), **Continue with School Management System** opens a fake SMS login page so you can try the SSO flow as any role.
+Sign in with your SMS user ID and password. An SMS **Admin** becomes a portal admin and can set up classes, subjects and chapters under **Manage**.
 
-Other scripts: `npm run lint`, `npm run typecheck`, `npm run build`, `npm run format`, `npm run db:down`.
+Optional sample data, for trying things out only: `npm run seed:demo` creates a demo school and the accounts `admin@school.local`, `teacher@school.local` and `student@school.local` (password `admin12345`). It **replaces all classes, subjects, chapters, teachers and lectures**. With `SMS_MOCK=true`, **Continue with School Management System** opens a fake SMS login page instead of the real SMS.
+
+Other scripts: `npm run lint`, `npm run typecheck`, `npm run build`, `npm run format`, `npm run db:down`, `npm run seed:admin` (local admin account only).
 
 ## Features
 

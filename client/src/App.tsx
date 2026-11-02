@@ -40,8 +40,9 @@ function Viewable({ children }: { children: ReactNode }) {
 export default function App() {
   return (
     <Routes>
+      {/* Full-screen, without the site header and footer */}
+      <Route path="/login" element={<Login />} />
       <Route element={<Layout />}>
-        <Route path="/login" element={<Login />} />
         <Route path="/" element={<Viewable><Home /></Viewable>} />
         <Route path="/lectures" element={<Viewable><Browse /></Viewable>} />
         <Route path="/lectures/:id" element={<Viewable><LectureView /></Viewable>} />

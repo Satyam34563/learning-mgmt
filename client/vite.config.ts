@@ -10,6 +10,7 @@ export default defineConfig({
     proxy: {
       '/api': 'http://localhost:4000',
       '/uploads': 'http://localhost:4000',
+      '/favicon.ico': { target: 'http://localhost:4000', rewrite: () => '/api/school/icon' },
     },
   },
 });

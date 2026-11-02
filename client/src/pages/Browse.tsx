@@ -25,6 +25,9 @@ export default function Browse() {
   };
 
   const query = Object.fromEntries(FILTER_KEYS.map((k) => [k, get(k)]));
+  // Inside one chapter, lectures default to the chapter's own order (e.g. the import spreadsheet's order).
+  const chapterOrder = !!get('chapter') && !get('sort') && !get('q');
+  if (chapterOrder) query.sort = 'oldest';
   const { data, isLoading, error, isFetching } = useQuery({
     queryKey: ['lectures', query, page],
     queryFn: () => api.get<Paged<Lecture>>(`/lectures${qs({ ...query, page, limit: 24 })}`),
@@ -40,7 +43,7 @@ export default function Browse() {
         subtitle={data ? `${data.total} result${data.total === 1 ? '' : 's'}${isFetching ? '…' : ''}` : ' '}
         actions={
           <select className="input w-auto" value={get('sort')} onChange={(e) => set({ sort: e.target.value })}>
-            <option value="">{get('q') ? 'Best match' : 'Newest first'}</option>
+            <option value="">{get('q') ? 'Best match' : chapterOrder ? 'Chapter order' : 'Newest first'}</option>
             <option value="oldest">Oldest first</option>
             <option value="recent">Recently added</option>
             <option value="popular">Most watched</option>

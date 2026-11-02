@@ -68,7 +68,7 @@ export default function LectureView() {
             onProgress={me ? (pos, dur) => save.mutate({ positionSeconds: Math.floor(pos), durationSeconds: Math.floor(dur) }) : undefined}
           />
         ) : (
-          <div className="grid aspect-video place-items-center rounded-lg bg-zinc-100 text-sm muted dark:bg-zinc-900">No video for this lecture</div>
+          <div className="grid aspect-video place-items-center rounded-lg bg-subtle text-sm muted">No video for this lecture</div>
         )}
 
         <div className="mt-5 flex flex-wrap items-start gap-3">
@@ -98,21 +98,21 @@ export default function LectureView() {
           ))}
         </dl>
 
-        {lecture.description && <p className="mt-6 whitespace-pre-line text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">{lecture.description}</p>}
+        {lecture.description && <p className="mt-6 whitespace-pre-line text-sm leading-relaxed text-ink">{lecture.description}</p>}
 
         {lecture.tags.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-1.5">
-            {lecture.tags.map((t) => <Link key={t} to={`/lectures?tag=${encodeURIComponent(t)}`} className="chip hover:border-zinc-400">#{t}</Link>)}
+            {lecture.tags.map((t) => <Link key={t} to={`/lectures?tag=${encodeURIComponent(t)}`} className="chip hover:border-accent/40">#{t}</Link>)}
           </div>
         )}
 
         {lecture.resources.length > 0 && (
           <section className="mt-8">
             <h2 className="mb-2">Attachments</h2>
-            <ul className="card divide-y divide-zinc-100 dark:divide-zinc-800">
+            <ul className="card divide-y divide-line">
               {lecture.resources.map((r) => (
                 <li key={r.url}>
-                  <a href={r.url} target="_blank" rel="noreferrer" className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                  <a href={r.url} target="_blank" rel="noreferrer" className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-subtle">
                     <span>{r.kind === 'file' ? '📄' : '🔗'}</span>
                     <span className="flex-1 truncate">{r.label}</span>
                     <span className="muted">{formatBytes(r.size)}</span>
@@ -130,7 +130,7 @@ export default function LectureView() {
           <ul className="space-y-1">
             {others.map((l) => (
               <li key={l._id}>
-                <Link to={`/lectures/${l._id}`} className="block rounded-md px-3 py-2 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-900">
+                <Link to={`/lectures/${l._id}`} className="block rounded-md px-3 py-2 text-sm hover:bg-subtle">
                   <div className="line-clamp-2">{l.title}</div>
                   <div className="mt-0.5 text-xs muted">{[l.teacher?.name, l.durationMinutes && `${l.durationMinutes} min`].filter(Boolean).join(' · ')}</div>
                 </Link>

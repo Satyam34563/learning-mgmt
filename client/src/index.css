@@ -1,60 +1,143 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,600;0,8..60,700;1,8..60,500&display=swap');
 @import 'tailwindcss';
 
+/*
+ * School colours: the same navy / gold as the SMS login, admit cards and receipts.
+ * Surface colours are variables so dark mode is one switch, not a dark: variant on every class.
+ */
+:root {
+  --page: #f3f5fa;
+  --card: #ffffff;
+  --ink: #0b1220;
+  --muted: #5b6785;
+  --line: #d5dbe8;
+  --field: #ffffff;
+  --subtle: #e8ecf5; /* hover / selected backgrounds */
+  --accent: #1f3a6e; /* links, active nav, primary buttons: navy in light ... */
+  --accent-hover: #142852;
+  --on-accent: #ffffff;
+  --focus: rgb(31 58 110 / 0.18);
+  --danger-bg: #fdecec;
+  --danger-ink: #9b1c1c;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #0d1424;
+    --card: #151f36;
+    --ink: #e8ecf5;
+    --muted: #9aa6c2;
+    --line: #2b3858;
+    --field: #0f182b;
+    --subtle: #1c2945;
+    --accent: #e3a82b; /* ... gold in dark */
+    --accent-hover: #f3d27f;
+    --on-accent: #142852;
+    --focus: rgb(227 168 43 / 0.25);
+    --danger-bg: #3a1a1f;
+    --danger-ink: #f5b5b5;
+  }
+}
+
 @theme {
-  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Noto Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Source Serif 4', Georgia, serif;
+
+  --color-navy: #1f3a6e;
+  --color-navy-deep: #142852;
+  --color-navy-light: #27488a;
+  --color-gold: #e3a82b;
+  --color-gold-soft: #f3d27f;
+}
+
+@theme inline {
+  --color-page: var(--page);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-field: var(--field);
+  --color-subtle: var(--subtle);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-on-accent: var(--on-accent);
+  --color-danger-bg: var(--danger-bg);
+  --color-danger-ink: var(--danger-ink);
 }
 
 @layer base {
   html {
-    @apply bg-white text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-100;
+    @apply bg-page font-sans text-[15px] text-ink antialiased;
   }
   h1 {
-    @apply text-2xl font-semibold tracking-tight;
+    @apply font-serif text-[1.75rem] leading-tight font-bold;
   }
   h2 {
-    @apply text-lg font-semibold tracking-tight;
+    @apply font-serif text-xl font-semibold;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-gold;
   }
 }
 
 /* Shared button shape; colour variants below add only colours so nothing conflicts. */
 @utility btn-base {
-  @apply inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium
-    disabled:cursor-default disabled:opacity-50;
+  @apply inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border px-3.5 py-2 text-sm font-semibold
+    transition-colors disabled:cursor-default disabled:opacity-60;
+}
+
+/* Navy band with the faint dot texture and warm gold glow from the SMS login. */
+@utility school-band {
+  background:
+    radial-gradient(rgb(255 255 255 / 0.06) 1px, transparent 1.2px) 0 0 / 22px 22px,
+    radial-gradient(60% 45% at 50% 38%, rgb(227 168 43 / 0.16) 0%, transparent 70%),
+    linear-gradient(160deg, #27488a 0%, #1f3a6e 48%, #142852 100%);
 }
 
 @layer components {
   .btn {
-    @apply btn-base border-zinc-200 bg-white hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:bg-zinc-800;
+    @apply btn-base border-line bg-card text-ink hover:bg-subtle;
   }
   .btn-primary {
-    @apply btn-base border-zinc-900 bg-zinc-900 text-white hover:bg-zinc-800 dark:border-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200;
+    @apply btn-base border-accent bg-accent text-on-accent shadow-[0_6px_18px_rgb(31_58_110/0.22)] hover:border-accent-hover hover:bg-accent-hover;
   }
   .btn-danger {
-    @apply btn-base border-zinc-200 bg-white text-red-600 hover:bg-red-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-red-400 dark:hover:bg-red-950;
+    @apply btn-base border-line bg-card text-danger-ink hover:bg-danger-bg;
   }
   .input {
-    @apply w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm outline-none placeholder:text-zinc-400
-      focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:border-zinc-600 dark:focus:ring-zinc-800;
+    @apply w-full rounded-lg border border-line bg-field px-3 py-2 text-sm text-ink outline-none placeholder:text-muted/80
+      focus:border-accent focus:ring-4 focus:ring-(--focus);
+  }
+  /* 48px icon field from the SMS login */
+  .login-input {
+    @apply h-12 w-full rounded-[10px] border border-line bg-field pr-3.5 pl-11 text-[15px] font-medium text-ink outline-none transition
+      placeholder:text-muted/80 focus:border-accent focus:ring-4 focus:ring-(--focus);
   }
   .label {
-    @apply mb-1 block text-xs font-medium text-zinc-500;
+    @apply mb-1.5 block text-sm font-semibold text-ink;
   }
   .card {
-    @apply rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900;
+    @apply rounded-xl border border-line bg-card;
   }
   .muted {
-    @apply text-zinc-500 dark:text-zinc-400;
+    @apply text-muted;
   }
   .chip {
-    @apply inline-flex items-center gap-1 rounded-full border border-zinc-200 px-2 py-0.5 text-xs text-zinc-600 dark:border-zinc-700 dark:text-zinc-300;
+    @apply inline-flex items-center gap-1 rounded-full border border-line bg-card px-2 py-0.5 text-xs text-muted;
+  }
+  .link {
+    @apply font-semibold text-accent hover:underline;
+  }
+  /* gold hairline with a diamond, as under the school name */
+  .gold-rule {
+    @apply flex items-center justify-center gap-2.5 text-gold before:h-px before:w-14 before:bg-current before:opacity-70 before:content-[''] after:h-px after:w-14 after:bg-current after:opacity-70 after:content-[''];
   }
   .table {
     @apply w-full text-left text-sm;
   }
   .table th {
-    @apply border-b border-zinc-200 px-3 py-2 text-xs font-medium text-zinc-500 dark:border-zinc-800;
+    @apply border-b border-line px-3 py-2 text-xs font-semibold tracking-wide text-muted uppercase;
   }
   .table td {
-    @apply border-b border-zinc-100 px-3 py-2 dark:border-zinc-800/60;
+    @apply border-b border-line/60 px-3 py-2.5;
   }
 }

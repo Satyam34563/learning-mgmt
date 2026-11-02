@@ -47,8 +47,8 @@ export default function Analytics() {
                   <Link to={`/lectures/${l._id}`} className="flex-1 truncate hover:underline">{l.title}</Link>
                   <span className="tabular-nums muted">{l.views}</span>
                 </div>
-                <div className="mt-1 ml-4 h-1 rounded-full bg-zinc-100 dark:bg-zinc-800">
-                  <div className="h-full rounded-full bg-zinc-900 dark:bg-zinc-200" style={{ width: `${(l.views / maxViews) * 100}%` }} />
+                <div className="mt-1 ml-4 h-1 rounded-full bg-subtle">
+                  <div className="h-full rounded-full bg-accent" style={{ width: `${(l.views / maxViews) * 100}%` }} />
                 </div>
                 <div className="mt-0.5 ml-4 text-xs muted">{l.classes.map(className).join(', ')}</div>
               </li>

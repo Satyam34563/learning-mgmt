@@ -1,7 +1,7 @@
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { api, className, qs, type Lecture, type Paged } from '../lib/api';
+import { className, getAllPages, type Lecture } from '../lib/api';
 import { useClasses, useMe } from '../lib/hooks';
 import { Empty, PageHeader, Spinner, SubjectDot } from '../components/ui';
 
@@ -33,7 +33,7 @@ export default function Timetable() {
   const { data, isLoading } = useQuery({
     queryKey: ['timetable', classId, iso(monday)],
     queryFn: () =>
-      api.get<Paged<Lecture>>(`/lectures${qs({ class: classId, from: iso(monday), to: `${iso(saturday)}T23:59:59Z`, sort: 'timetable', limit: 100 })}`),
+      getAllPages<Lecture>('/lectures', { class: classId, from: iso(monday), to: `${iso(saturday)}T23:59:59Z`, sort: 'timetable' }),
     enabled: !!classId,
   });
 
@@ -97,11 +97,11 @@ export default function Timetable() {
               <tbody>
                 {Array.from({ length: periods }, (_, p) => (
                   <tr key={p}>
-                    <td className="border-t border-zinc-100 py-2 pr-2 align-top text-xs muted dark:border-zinc-800">P{p + 1}</td>
+                    <td className="border-t border-line py-2 pr-2 align-top text-xs muted">P{p + 1}</td>
                     {DAYS.map((_, day) => (
-                      <td key={day} className="border-t border-zinc-100 p-1 align-top dark:border-zinc-800">
+                      <td key={day} className="border-t border-line p-1 align-top">
                         {cell(day, p + 1).map((l) => (
-                          <Link key={l._id} to={`/lectures/${l._id}`} className="mb-1 block rounded-md border border-zinc-200 p-2 hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600">
+                          <Link key={l._id} to={`/lectures/${l._id}`} className="mb-1 block rounded-md border border-line bg-card p-2 hover:border-accent/40">
                             <div className="flex items-center gap-1.5 text-xs muted"><SubjectDot color={l.subject.color} />{l.subject.name}</div>
                             <div className="mt-0.5 line-clamp-2 text-xs font-medium">{l.title}</div>
                           </Link>

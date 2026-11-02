@@ -16,12 +16,12 @@ export default function MyLearning() {
   return (
     <div>
       <PageHeader title="My learning" />
-      <div className="mb-6 flex gap-1 border-b border-zinc-200 dark:border-zinc-800">
+      <div className="mb-6 flex gap-1 border-b border-line">
         {TABS.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`-mb-px border-b-2 px-3 py-2 text-sm ${tab === t ? 'border-zinc-900 font-medium dark:border-white' : 'border-transparent muted hover:text-zinc-900 dark:hover:text-white'}`}
+            className={`-mb-px border-b-2 px-3 py-2 text-sm ${tab === t ? 'border-accent font-semibold text-accent' : 'border-transparent muted hover:text-ink'}`}
           >
             {t}
           </button>

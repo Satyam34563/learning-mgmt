@@ -30,7 +30,7 @@ export default function Player({ url, startAt = 0, onProgress }: Props) {
   }
   if (isFile(url)) return <FileVideo url={url} startAt={startAt} onProgress={onProgress} className={frame} />;
   return (
-    <div className={`${frame} grid place-items-center text-sm text-zinc-300`}>
+    <div className={`${frame} grid place-items-center text-sm text-white/80`}>
       <a href={url} target="_blank" rel="noreferrer" className="underline">Open video in a new tab ↗</a>
     </div>
   );

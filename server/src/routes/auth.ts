@@ -19,7 +19,12 @@ const cookieOpts = {
 
 type UserLike = { _id: unknown; role: AuthUser['role']; name: string; teacher?: unknown; class?: unknown };
 
-function startSession(res: Response, user: UserLike): AuthUser {
+/** "Remember me" ticked: 30 days. Unticked: until the browser closes (token still expires in 12 h). SSO keeps 7 days. */
+type Remember = 'yes' | 'no' | 'default';
+const SESSION_LENGTH = { yes: '30d', no: '12h', default: '7d' } as const;
+const SESSION_MS = { yes: 30 * 864e5, no: 12 * 36e5, default: 7 * 864e5 } as const;
+
+function startSession(res: Response, user: UserLike, remember: Remember = 'default'): AuthUser {
   const authUser: AuthUser = {
     id: String(user._id),
     role: user.role,
@@ -27,7 +32,10 @@ function startSession(res: Response, user: UserLike): AuthUser {
     teacher: user.teacher ? String(user.teacher) : undefined,
     class: user.class ? String(user.class) : undefined,
   };
-  res.cookie(AUTH_COOKIE, signToken(authUser), cookieOpts);
+  res.cookie(AUTH_COOKIE, signToken(authUser, SESSION_LENGTH[remember]), {
+    ...cookieOpts,
+    maxAge: remember === 'no' ? undefined : SESSION_MS[remember], // 'no' = browser-session cookie
+  });
   return authUser;
 }
 
@@ -72,9 +80,14 @@ function checkRate(ip: string) {
  * (created on Manage → Users, identified by its email) is checked locally.
  */
 authRouter.post('/login', async (req, res) => {
-  const { userId, password } = z
-    .object({ userId: z.string().trim().min(1, 'Enter your user ID').max(100), password: z.string().min(1, 'Enter your password').max(200) })
+  const { userId, password, remember: rememberMe } = z
+    .object({
+      userId: z.string().trim().min(1, 'Enter your user ID').max(100),
+      password: z.string().min(1, 'Enter your password').max(200),
+      remember: z.boolean().default(false),
+    })
     .parse(req.body);
+  const remember: Remember = rememberMe ? 'yes' : 'no';
   checkRate(req.ip ?? '');
 
   // A portal-only account (Manage → Users) is checked here; everyone else, including SMS user IDs
@@ -87,13 +100,13 @@ authRouter.post('/login', async (req, res) => {
     // smsReady() makes sure the SMS key is there to verify the token with
     if (!(await smsReady())) throw new HttpError(503, 'Could not reach the School Management System, please try again');
     const claims = await loginWithSmsPassword(userId, password);
-    res.json(startSession(res, await upsertSmsUser(claims)));
+    res.json(startSession(res, await upsertSmsUser(claims), remember));
     return;
   }
   if (!(await bcrypt.compare(password, user.passwordHash))) throw new HttpError(401, 'Wrong user ID or password');
   user.lastLoginAt = new Date();
   await user.save();
-  res.json(startSession(res, user));
+  res.json(startSession(res, user, remember));
 });
 
 /* ---------- SMS single sign-on ---------- */

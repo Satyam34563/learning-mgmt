@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, qs, type Chapter, type Me, type SchoolBranding, type SchoolClass, type Subject, type Teacher } from './api';
 
@@ -18,14 +19,23 @@ export const useSchool = () =>
 /** "DLCS Lectures", or just "Lectures" until the school is known. */
 export const portalTitle = (s?: SchoolBranding) => [s?.short_name || s?.name, 'Lectures'].filter(Boolean).join(' ');
 
+/** Tab title follows the school, e.g. "Log in · DLCS Lectures". (The tab icon comes from /api/school/icon in index.html.) */
+export function useSchoolHead(prefix?: string) {
+  const { data: school } = useSchool();
+  useEffect(() => {
+    document.title = [prefix, portalTitle(school)].filter(Boolean).join(' · ');
+  }, [school, prefix]);
+}
+
 export const isStaff = (me?: Me | null) => me?.role === 'admin' || me?.role === 'teacher';
 
 const taxonomy = { staleTime: 5 * 60_000 };
 export const useClasses = () => useQuery({ queryKey: ['classes'], queryFn: () => api.get<SchoolClass[]>('/classes'), ...taxonomy });
 export const useSubjects = () => useQuery({ queryKey: ['subjects'], queryFn: () => api.get<Subject[]>('/subjects'), ...taxonomy });
 export const useTeachers = () => useQuery({ queryKey: ['teachers'], queryFn: () => api.get<Teacher[]>('/teachers'), ...taxonomy });
-export const useChapters = (filter: { subject?: string; class?: string } = {}) =>
+export const useChapters = (filter: { subject?: string; class?: string } = {}, enabled = true) =>
   useQuery({
+    enabled,
     queryKey: ['chapters', filter],
     queryFn: () => api.get<Chapter[]>(`/chapters${qs(filter)}`),
     ...taxonomy,

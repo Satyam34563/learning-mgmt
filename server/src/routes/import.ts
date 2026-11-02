@@ -12,15 +12,19 @@
  * unless ?create=true, in which case they're created.
  */
 import { Router } from 'express';
+import { Types } from 'mongoose';
 import multer from 'multer';
 import { parse } from 'csv-parse/sync';
 import ExcelJS from 'exceljs';
 import { ClassModel, Subject, Chapter, Teacher, Lecture } from '../models/index.js';
+import { config } from '../config.js';
 import { requireRole } from '../middleware/auth.js';
 import { HttpError } from '../lib/http.js';
+import { buildImportTemplate } from '../lib/importTemplate.js';
 
 const r = Router();
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: config.maxUploadMb * 1024 * 1024 } });
+const MAX_ROWS = 50_000;
 
 type Row = Record<string, string>;
 
@@ -55,6 +59,15 @@ async function readRows(file: Express.Multer.File): Promise<Row[]> {
 const split = (v?: string) => (v ?? '').split(/[;|]/).map((s) => s.trim()).filter(Boolean);
 const norm = (s: string) => s.trim().toLowerCase();
 
+/** Excel template with dropdowns and this school's names (see lib/importTemplate.ts). */
+r.get('/lectures/template.xlsx', requireRole('admin', 'teacher'), async (_req, res) => {
+  res
+    .type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    .attachment('lecture-import-template.xlsx')
+    .send(await buildImportTemplate());
+});
+
+/** Plain CSV version, for people who prefer it. */
 r.get('/lectures/template', (_req, res) => {
   const header = 'title,subject,classes,chapter,teacher,description,videoUrl,durationMinutes,lectureDate,period,tags,status,meta.term,meta.board';
   const example = 'Polynomials - Intro,Mathematics,Class 9,Polynomials,Mrs. Anjali Sharma,Basics of polynomials,https://www.youtube.com/watch?v=xxxx,40,2026-07-14,2,concepts;algebra,published,Term 1,CBSE';
@@ -68,9 +81,10 @@ r.post('/lectures', requireRole('admin', 'teacher'), upload.single('file'), asyn
 
   const raw = await readRows(req.file);
   if (!raw.length) throw new HttpError(400, 'The file has no rows');
-  if (raw.length > 2000) throw new HttpError(400, 'Max 2000 rows per import');
+  if (raw.length > MAX_ROWS) throw new HttpError(400, `Max ${MAX_ROWS} rows per import`);
   // lower-case header keys, keep meta.<key> casing-insensitive too
-  const rows = raw.map((row) => Object.fromEntries(Object.entries(row).map(([k, v]) => [norm(k), String(v ?? '').trim()])));
+  // "title*" in the Excel template marks a required column; the "*" isn't part of the name.
+  const rows = raw.map((row) => Object.fromEntries(Object.entries(row).map(([k, v]) => [norm(k).replace(/\*$/, ''), String(v ?? '').trim()])));
 
   const [classes, subjects, chapters, teachers] = await Promise.all([
     ClassModel.find().lean(),
@@ -86,6 +100,12 @@ r.post('/lectures', requireRole('admin', 'teacher'), upload.single('file'), asyn
   const errors: { row: number; message: string }[] = [];
   const docs: Record<string, unknown>[] = [];
 
+  // Names that don't exist yet (admin ticked "create"): given ids now, saved only if the whole file is valid
+  // and this isn't a dry run, so "Check file" never changes anything and a failed import leaves nothing behind.
+  const pending = { subjects: [] as object[], classes: [] as object[], chapters: [] as object[], teachers: [] as object[] };
+  const newId = () => new Types.ObjectId();
+  const created = { subjects: 0, classes: 0, chapters: 0, teachers: 0 };
+
   for (const [i, row] of rows.entries()) {
     const rowNo = i + 2; // header is row 1
     const fail = (message: string) => errors.push({ row: rowNo, message });
@@ -93,17 +113,19 @@ r.post('/lectures', requireRole('admin', 'teacher'), upload.single('file'), asyn
 
     let subjectId = row.subject && subjectByName.get(norm(row.subject));
     if (!subjectId && row.subject && create) {
-      const s = await Subject.create({ name: row.subject });
-      subjectByName.set(norm(row.subject), (subjectId = s._id));
+      subjectId = newId();
+      pending.subjects.push({ _id: subjectId, name: row.subject });
+      subjectByName.set(norm(row.subject), subjectId);
     }
     if (!subjectId) { fail(`unknown subject "${row.subject ?? ''}"`); continue; }
 
-    const classIds = [];
+    const classIds: Types.ObjectId[] = [];
     for (const name of split(row.classes ?? row.class)) {
       let id = classByName.get(norm(name));
       if (!id && create) {
-        const c = await ClassModel.create({ name, order: Number(name.match(/\d+/)?.[0] ?? 0) });
-        classByName.set(norm(name), (id = c._id));
+        id = newId();
+        pending.classes.push({ _id: id, name, order: Number(name.match(/\d+/)?.[0] ?? 0) });
+        classByName.set(norm(name), id);
       }
       if (id) classIds.push(id);
       else fail(`unknown class "${name}"`);
@@ -118,9 +140,13 @@ r.post('/lectures', requireRole('admin', 'teacher'), upload.single('file'), asyn
         : inSubject.find((c) => norm(c.title) === norm(row.chapter));
       if (ch) chapterId = ch._id;
       else if (create && !/^\d+$/.test(row.chapter)) {
-        const created = await Chapter.create({ subject: subjectId, classes: classIds, title: row.chapter, number: inSubject.length + 1 });
-        chapters.push(created.toObject());
-        chapterId = created._id;
+        // numbered within the class (Class 9's first chapter is 1, whatever other classes have)
+        const sameClass = inSubject.filter((c) => c.classes.some((id) => classIds.some((cid) => String(cid) === String(id))));
+        const number = sameClass.reduce((m, c) => Math.max(m, c.number ?? 0), 0) + 1;
+        const chapter = { _id: newId(), subject: subjectId, classes: classIds, title: row.chapter, number };
+        pending.chapters.push(chapter);
+        chapters.push(chapter as (typeof chapters)[number]);
+        chapterId = chapter._id;
       } else { fail(`unknown chapter "${row.chapter}" in ${row.subject}`); continue; }
     }
 
@@ -128,8 +154,9 @@ r.post('/lectures', requireRole('admin', 'teacher'), upload.single('file'), asyn
     if (row.teacher) {
       teacherId = teacherByName.get(norm(row.teacher));
       if (!teacherId && create) {
-        const t = await Teacher.create({ name: row.teacher, subjects: [subjectId] });
-        teacherByName.set(norm(row.teacher), (teacherId = t._id));
+        teacherId = newId();
+        pending.teachers.push({ _id: teacherId, name: row.teacher, subjects: [subjectId] });
+        teacherByName.set(norm(row.teacher), teacherId);
       }
       if (!teacherId) { fail(`unknown teacher "${row.teacher}"`); continue; }
     }
@@ -137,6 +164,12 @@ r.post('/lectures', requireRole('admin', 'teacher'), upload.single('file'), asyn
     const date = row.lecturedate ? new Date(row.lecturedate) : undefined;
     if (date && Number.isNaN(date.getTime())) { fail(`bad lectureDate "${row.lecturedate}"`); continue; }
     if (row.videourl && !URL.canParse(row.videourl)) { fail(`bad videoUrl "${row.videourl}"`); continue; }
+    const duration = row.durationminutes ? Number(row.durationminutes) : undefined;
+    if (duration !== undefined && !(duration >= 0)) { fail(`bad durationMinutes "${row.durationminutes}"`); continue; }
+    const period = row.period ? Number(row.period) : undefined;
+    if (period !== undefined && !(Number.isInteger(period) && period >= 1 && period <= 12)) { fail(`period must be 1–12, got "${row.period}"`); continue; }
+    const status = norm(row.status ?? '') || 'published';
+    if (status !== 'published' && status !== 'draft') { fail(`status must be "published" or "draft", got "${row.status}"`); continue; }
 
     docs.push({
       title: row.title,
@@ -146,11 +179,11 @@ r.post('/lectures', requireRole('admin', 'teacher'), upload.single('file'), asyn
       chapter: chapterId,
       teacher: teacherId ?? (req.user!.role === 'teacher' ? req.user!.teacher : undefined),
       videoUrl: row.videourl ?? '',
-      durationMinutes: row.durationminutes ? Number(row.durationminutes) : undefined,
+      durationMinutes: duration,
       lectureDate: date,
-      period: row.period ? Number(row.period) : undefined,
+      period,
       tags: split(row.tags).map(norm),
-      status: row.status === 'draft' ? 'draft' : 'published',
+      status,
       meta: Object.entries(row)
         .filter(([k, v]) => k.startsWith('meta.') && v)
         .map(([k, v]) => ({ key: k.slice(5), value: v })),
@@ -158,11 +191,22 @@ r.post('/lectures', requireRole('admin', 'teacher'), upload.single('file'), asyn
     });
   }
 
-  if (!dryRun && !errors.length) await Lecture.insertMany(docs);
+  const willImport = !dryRun && !errors.length;
+  if (willImport) {
+    // order matters: chapters and teachers refer to subjects / classes
+    if (pending.subjects.length) created.subjects = (await Subject.insertMany(pending.subjects)).length;
+    if (pending.classes.length) created.classes = (await ClassModel.insertMany(pending.classes)).length;
+    if (pending.chapters.length) created.chapters = (await Chapter.insertMany(pending.chapters)).length;
+    if (pending.teachers.length) created.teachers = (await Teacher.insertMany(pending.teachers)).length;
+    await Lecture.insertMany(docs);
+  }
   res.json({
     total: rows.length,
     valid: docs.length,
-    imported: !dryRun && !errors.length ? docs.length : 0,
+    imported: willImport ? docs.length : 0,
+    // on a check, what *would* be created
+    toCreate: Object.fromEntries(Object.entries(pending).map(([k, v]) => [k, v.length])),
+    created,
     errors,
   });
 });
