@@ -4,7 +4,7 @@ For a small server that already runs other sites (here the school's SMS on a 1 G
 
 | What | Where |
 | --- | --- |
-| Code | `/var/www/online-learning` (owned by the deploy user, e.g. `satyam`) |
+| Code | `/var/www/online-learning`, owned by `www-data:www-data` (mode 2775); the deploy user (e.g. `satyam`) is in the `www-data` group |
 | Settings | `server/.env` (mode 600) |
 | Site | `client/dist`, served by nginx for `dlcs.lectures.managemyschools.in` |
 | API | pm2 process `online-learning-api` on `127.0.0.1:4000`, logs in `logs/` |
@@ -14,10 +14,13 @@ For a small server that already runs other sites (here the school's SMS on a 1 G
 ## First install
 
 ```bash
-# 1. as root: a folder the deploy user owns
-sudo mkdir -p /var/www/online-learning && sudo chown $USER:$USER /var/www/online-learning
+# 1. as root: a www-data folder the deploy user can write to (via the www-data group)
+sudo mkdir -p /var/www/online-learning
+sudo chown www-data:www-data /var/www/online-learning && sudo chmod 2775 /var/www/online-learning
+sudo usermod -aG www-data $USER        # takes effect on the next login
 
 # 2. as the deploy user
+git config --global --add safe.directory /var/www/online-learning   # git refuses folders owned by another user otherwise
 git clone https://github.com/Satyam34563/learning-mgmt.git /var/www/online-learning
 cd /var/www/online-learning
 npm ci && npm run build
