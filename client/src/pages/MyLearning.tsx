@@ -41,14 +41,14 @@ export default function MyLearning() {
       {tab === 'History' &&
         (history.isLoading ? <Spinner /> : !history.data?.length ? <Empty>You haven't watched anything yet.</Empty> : (
           <table className="table">
-            <thead><tr><th>Lecture</th><th>Subject</th><th className="w-40">Progress</th><th>Last watched</th></tr></thead>
+            <thead><tr><th>Lecture</th><th className="hidden sm:table-cell">Subject</th><th className="w-28 sm:w-40">Progress</th><th className="hidden sm:table-cell">Last watched</th></tr></thead>
             <tbody>
               {history.data.map((p) => (
                 <tr key={p._id}>
                   <td><Link className="hover:underline" to={`/lectures/${p.lecture._id}`}>{p.lecture.title}</Link></td>
-                  <td className="muted">{p.lecture.subject?.name}</td>
+                  <td className="hidden muted sm:table-cell">{p.lecture.subject?.name}</td>
                   <td>{p.completed ? <span className="text-xs">✓ Done</span> : <ProgressBar value={pct(p)} />}</td>
-                  <td className="muted">{formatDate(p.updatedAt)}</td>
+                  <td className="hidden muted sm:table-cell">{formatDate(p.updatedAt)}</td>
                 </tr>
               ))}
             </tbody>

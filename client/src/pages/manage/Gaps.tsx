@@ -21,13 +21,13 @@ export default function Gaps() {
       {isLoading ? <Spinner /> : !data?.length ? <Empty>Every chapter has at least one lecture.</Empty> : (
         <div className="grid gap-4 md:grid-cols-2">
           {bySubject.map(({ subject, chapters }) => (
-            <section key={subject._id} className="card p-4">
+            <section key={subject._id} className="card min-w-0 p-4">
               <h2 className="mb-2 flex items-center gap-2 text-base"><SubjectDot color={subject.color} />{subject.name}</h2>
               <ul className="space-y-1 text-sm">
                 {chapters.map((c) => (
                   <li key={c._id} className="flex items-center gap-2">
-                    <span className="flex-1 truncate">{c.number}. {c.title}</span>
-                    <span className="text-xs muted">{c.classes.map(className).join(', ')}</span>
+                    <span className="min-w-0 flex-1 truncate">{c.number}. {c.title}</span>
+                    <span className="shrink-0 text-xs muted">{c.classes.map(className).join(', ')}</span>
                     <Link className="text-xs underline" to="/manage/lectures/new">Add</Link>
                   </li>
                 ))}

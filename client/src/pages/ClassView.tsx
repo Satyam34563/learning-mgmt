@@ -61,15 +61,16 @@ export default function ClassView() {
         <Empty>No lectures for this class yet.</Empty>
       ) : (
         <div className="grid gap-8 md:grid-cols-[240px_1fr]">
-          <aside className="flex flex-row flex-wrap gap-1 md:flex-col">
+          {/* phones: one swipeable row of subjects; md+: a vertical list */}
+          <aside className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:flex-col md:overflow-visible md:px-0 md:pb-0">
             {subjectList.map((s) => (
               <button
                 key={s._id}
                 onClick={() => selectSubject(s._id)}
-                className={`flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left text-sm ${s._id === subjectId ? 'bg-subtle font-semibold text-accent' : 'hover:bg-subtle'}`}
+                className={`flex shrink-0 cursor-pointer items-center gap-2 rounded-full border px-3 py-2 text-left text-sm whitespace-nowrap md:rounded-lg md:border-0 ${s._id === subjectId ? 'border-accent bg-subtle font-semibold text-accent' : 'border-line bg-card hover:bg-subtle md:bg-transparent'}`}
               >
                 <SubjectDot color={s.color} />
-                <span className="flex-1">{s.name}</span>
+                <span className="md:flex-1">{s.name}</span>
                 <span className="text-xs muted">{stats?.bySubject[s._id]?.toLocaleString()}</span>
               </button>
             ))}

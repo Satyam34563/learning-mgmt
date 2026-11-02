@@ -46,7 +46,7 @@ export default function Layout() {
 
   const searchBox = (
     <input
-      className="w-full rounded-lg border border-white/15 bg-white/10 px-3 py-1.5 text-sm text-white outline-none placeholder:text-white/55 focus:border-gold focus:bg-white/15"
+      className="w-full rounded-lg border border-white/15 bg-white/10 px-3 py-1.5 text-[16px] text-white outline-none sm:text-sm placeholder:text-white/55 focus:border-gold focus:bg-white/15"
       placeholder="Search lectures…"
       value={q}
       onChange={(e) => setQ(e.target.value)}
@@ -84,7 +84,7 @@ export default function Layout() {
           </div>
         </div>
         {open && (
-          <div className="flex flex-col gap-1 border-t border-white/10 px-4 py-3 md:hidden" onClick={() => setOpen(false)}>
+          <div className="flex flex-col gap-1 border-t border-white/10 px-4 py-3 md:hidden [&>a]:py-3" onClick={() => setOpen(false)}>
             <form onSubmit={search} className="mb-2 sm:hidden" onClick={(e) => e.stopPropagation()}>{searchBox}</form>
             {links}
           </div>

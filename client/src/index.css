@@ -104,12 +104,13 @@
     @apply btn-base border-line bg-card text-danger-ink hover:bg-danger-bg;
   }
   .input {
-    @apply w-full rounded-lg border border-line bg-field px-3 py-2 text-sm text-ink outline-none placeholder:text-muted/80
+    /* 16px on phones: iOS Safari zooms into any field smaller than that */
+    @apply w-full rounded-lg border border-line bg-field px-3 py-2 text-[16px] text-ink outline-none placeholder:text-muted/80 sm:text-sm
       focus:border-accent focus:ring-4 focus:ring-(--focus);
   }
   /* 48px icon field from the SMS login */
   .login-input {
-    @apply h-12 w-full rounded-[10px] border border-line bg-field pr-3.5 pl-11 text-[15px] font-medium text-ink outline-none transition
+    @apply h-12 w-full rounded-[10px] border border-line bg-field pr-3.5 pl-11 text-[16px] font-medium text-ink outline-none transition sm:text-[15px]
       placeholder:text-muted/80 focus:border-accent focus:ring-4 focus:ring-(--focus);
   }
   .label {

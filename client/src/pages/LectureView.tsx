@@ -72,17 +72,25 @@ export default function LectureView() {
         </nav>
 
         {at >= 0 && (
-          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-line bg-card px-3 py-2">
-            <span className="grid size-7 place-items-center rounded-full bg-accent text-on-accent">
+          <div className="mb-3 flex items-center gap-2 rounded-xl border border-line bg-card px-3 py-2">
+            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-accent text-on-accent">
               <svg viewBox="0 0 16 16" className="size-3" fill="currentColor"><path d="M5 3.5v9l7-4.5z" /></svg>
             </span>
-            <span className="text-sm">
+            <span className="min-w-0 truncate text-sm">
               <span className="font-semibold">Video {at + 1} of {playlist!.total}</span>
               <span className="muted"> · {listName}</span>
             </span>
-            <span className="ml-auto flex gap-2">
-              {prev ? <Link className="btn" to={`/lectures/${prev._id}`} title={prev.title}>← Previous</Link> : <span className="btn opacity-40">← Previous</span>}
-              {next ? <Link className="btn-primary" to={`/lectures/${next._id}`} title={next.title}>Next →</Link> : <span className="btn opacity-40">Next →</span>}
+            <span className="ml-auto flex shrink-0 gap-2">
+              {prev ? (
+                <Link className="btn" to={`/lectures/${prev._id}`} title={prev.title} aria-label="Previous video">←<span className="hidden sm:inline"> Previous</span></Link>
+              ) : (
+                <span className="btn opacity-40" aria-hidden>←<span className="hidden sm:inline"> Previous</span></span>
+              )}
+              {next ? (
+                <Link className="btn-primary" to={`/lectures/${next._id}`} title={next.title} aria-label="Next video"><span className="hidden sm:inline">Next </span>→</Link>
+              ) : (
+                <span className="btn opacity-40" aria-hidden><span className="hidden sm:inline">Next </span>→</span>
+              )}
             </span>
           </div>
         )}
@@ -98,7 +106,7 @@ export default function LectureView() {
         )}
 
         <div className="mt-5 flex flex-wrap items-start gap-3">
-          <h1 className="flex-1">{lecture.title}</h1>
+          <h1 className="w-full sm:w-auto sm:flex-1">{lecture.title}</h1>
           <BookmarkButton id={lecture._id} />
           {me && (
             <button
@@ -148,38 +156,44 @@ export default function LectureView() {
             </ul>
           </section>
         )}
-
-        {!!playlist?.related.length && (
-          <section className="mt-10">
-            <h2 className="mb-3">More videos</h2>
-            <LectureGrid>
-              {playlist.related.map((l) => <LectureCard key={l._id} lecture={l} />)}
-            </LectureGrid>
-          </section>
-        )}
       </div>
 
-      <aside className="lg:sticky lg:top-20 lg:self-start">
+      {/* phones: right after the video; desktop: the right-hand column, beside both rows */}
+      <aside className="lg:sticky lg:top-20 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start">
         <div className="mb-2 flex items-baseline justify-between gap-2">
           <h2 className="text-base">{lecture.chapter ? 'In this chapter' : 'In this subject'}</h2>
           {at >= 0 && <span className="text-xs muted">{at + 1} / {playlist!.total}</span>}
         </div>
         {playlist ? <ChapterList items={playlist.items} current={lecture._id} /> : <Spinner />}
       </aside>
+
+      {!!playlist?.related.length && (
+        <section className="min-w-0 lg:col-start-1 lg:mt-2">
+          <h2 className="mb-3">More videos</h2>
+          <LectureGrid>
+            {playlist.related.map((l) => <LectureCard key={l._id} lecture={l} />)}
+          </LectureGrid>
+        </section>
+      )}
     </div>
   );
 }
 
 /** Every video in the chapter, numbered in order; the playing one highlighted and scrolled into view. */
 function ChapterList({ items, current }: { items: Playlist['items']; current: string }) {
+  const listRef = useRef<HTMLOListElement>(null);
   const currentRef = useRef<HTMLAnchorElement>(null);
+  // Scroll the list itself (not the page) so the playing video is in view. scrollIntoView would also
+  // scroll the window, which on phones jumps past the player to the list below it.
   useEffect(() => {
-    currentRef.current?.scrollIntoView({ block: 'nearest' });
+    const list = listRef.current;
+    const item = currentRef.current;
+    if (list && item) list.scrollTop = item.offsetTop - list.clientHeight / 2 + item.offsetHeight / 2;
   }, [current]);
 
   if (items.length <= 1) return <p className="text-sm muted">Nothing else yet.</p>;
   return (
-    <ol className="card max-h-[70vh] divide-y divide-line overflow-y-auto">
+    <ol ref={listRef} className="card relative max-h-[55vh] divide-y divide-line overflow-y-auto lg:max-h-[70vh]">
       {items.map((l, i) => {
         const playing = l._id === current;
         return (

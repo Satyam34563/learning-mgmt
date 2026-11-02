@@ -32,7 +32,7 @@ export function PageHeader({ title, subtitle, actions }: { title: ReactNode; sub
         <h1>{title}</h1>
         {subtitle && <p className="mt-1 text-sm muted">{subtitle}</p>}
       </div>
-      {actions && <div className="flex gap-2">{actions}</div>}
+      {actions && <div className="flex w-full flex-wrap gap-2 sm:w-auto">{actions}</div>}
     </div>
   );
 }

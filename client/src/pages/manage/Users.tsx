@@ -36,7 +36,7 @@ export default function Users() {
       {isLoading ? <Spinner /> : (
         <div className="overflow-x-auto">
           <table className="table">
-            <thead><tr><th>Name</th><th>Role</th><th>Teacher profile / class</th><th>Sign-in</th><th>Last login</th><th /></tr></thead>
+            <thead><tr><th>Name</th><th>Role</th><th>Teacher profile / class</th><th className="hidden md:table-cell">Sign-in</th><th className="hidden md:table-cell">Last login</th><th /></tr></thead>
             <tbody>
               {data?.map((u) => (
                 <tr key={u._id}>
@@ -65,8 +65,8 @@ export default function Users() {
                       </select>
                     )}
                   </td>
-                  <td><span className="chip">{u.source === 'sms' ? 'SMS' : 'Local'}</span></td>
-                  <td className="muted">{formatDate(u.lastLoginAt) || '—'}</td>
+                  <td className="hidden md:table-cell"><span className="chip">{u.source === 'sms' ? 'SMS' : 'Local'}</span></td>
+                  <td className="hidden muted md:table-cell">{formatDate(u.lastLoginAt) || '—'}</td>
                   <td className="text-right">
                     {u._id !== me?.id && <button className="btn-danger" onClick={() => confirm(`Remove ${u.name}?`) && remove.mutate(u._id)}>Remove</button>}
                   </td>

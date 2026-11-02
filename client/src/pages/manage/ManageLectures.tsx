@@ -62,7 +62,31 @@ export default function ManageLectures() {
       </div>
       <ErrorBox error={error ?? remove.error} />
       {isLoading ? <Spinner /> : !data?.items.length ? <Empty>No lectures found.</Empty> : (
-        <div className="overflow-x-auto">
+        <>
+        {/* phones: one card per lecture */}
+        <ul className="card divide-y divide-line md:hidden">
+          {data.items.map((l) => (
+            <li key={l._id} className="p-3">
+              <div className="flex items-start gap-2">
+                <Link className="min-w-0 flex-1 font-medium hover:underline" to={`/lectures/${l._id}`}>{l.title}</Link>
+                <span className="chip shrink-0">{l.status}</span>
+              </div>
+              <div className="mt-1 flex flex-wrap items-center gap-x-1.5 text-xs muted">
+                <SubjectDot color={l.subject.color} />
+                <span>{l.subject.name}</span>
+                {l.chapter && <span>· Ch {l.chapter.number}: {l.chapter.title}</span>}
+              </div>
+              <div className="mt-0.5 text-xs muted">
+                {[l.classes.map(className).join(', '), l.teacher?.name, formatDate(l.lectureDate)].filter(Boolean).join(' · ')}
+              </div>
+              <div className="mt-2 flex gap-2">
+                <Link className="btn" to={`/manage/lectures/${l._id}/edit`}>Edit</Link>
+                <button className="btn-danger" onClick={() => confirm(`Delete "${l.title}"?`) && remove.mutate(l._id)}>Delete</button>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <div className="hidden overflow-x-auto md:block">
           <table className="table">
             <thead>
               <tr><th>Title</th><th>Classes</th><th>Subject / chapter</th><th>Teacher</th><th>Date</th><th>Status</th><th /></tr>
@@ -88,6 +112,7 @@ export default function ManageLectures() {
             </tbody>
           </table>
         </div>
+        </>
       )}
       {data && <Pagination page={data.page} pages={data.pages} onChange={(p) => set('page', String(p))} />}
     </div>

@@ -61,7 +61,7 @@ export default function Timetable() {
         subtitle={`Week of ${fmt(monday)} – ${fmt(saturday)}`}
         actions={
           <>
-            <select className="input w-auto" value={classId} onChange={(e) => setParams((p) => (p.set('class', e.target.value), p))}>
+            <select className="input w-full sm:w-auto" value={classId} onChange={(e) => setParams((p) => (p.set('class', e.target.value), p))}>
               <option value="">Choose class…</option>
               {classes?.map((c) => <option key={c._id} value={c._id}>{className(c)}</option>)}
             </select>
@@ -77,7 +77,44 @@ export default function Timetable() {
         <Spinner />
       ) : (
         <>
-          <div className="overflow-x-auto">
+          {/* phones: one day after another */}
+          <div className="space-y-4 md:hidden">
+            {DAYS.map((d, day) => {
+              const date = new Date(monday);
+              date.setUTCDate(monday.getUTCDate() + day);
+              const today = iso(date) === iso(new Date());
+              const items = Array.from({ length: periods }, (_, p) => cell(day, p + 1).map((l) => ({ l, p: p + 1 }))).flat();
+              return (
+                <section key={d} className="card overflow-hidden">
+                  <h2 className={`flex items-baseline gap-2 border-b border-line px-4 py-2.5 font-sans text-sm ${today ? 'bg-subtle text-accent' : ''}`}>
+                    <span className="font-semibold">{d}</span>
+                    <span className="muted">{fmt(date)}</span>
+                    {today && <span className="ml-auto chip">Today</span>}
+                  </h2>
+                  {items.length ? (
+                    <ul className="divide-y divide-line">
+                      {items.map(({ l, p }) => (
+                        <li key={l._id}>
+                          <Link to={`/lectures/${l._id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-subtle">
+                            <span className="w-8 shrink-0 text-xs font-semibold text-accent">P{p}</span>
+                            <span className="min-w-0 flex-1">
+                              <span className="flex items-center gap-1.5 text-xs muted"><SubjectDot color={l.subject.color} />{l.subject.name}</span>
+                              <span className="line-clamp-2 text-sm font-medium">{l.title}</span>
+                            </span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="px-4 py-3 text-sm muted">No lectures</p>
+                  )}
+                </section>
+              );
+            })}
+          </div>
+
+          {/* tablets and up: the week grid */}
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[720px] table-fixed border-collapse text-sm">
               <thead>
                 <tr>
