@@ -1,5 +1,6 @@
 import { Router, type Request } from 'express';
 import type { QueryFilter } from 'mongoose';
+import { Types } from 'mongoose';
 import { z } from 'zod';
 import { Bookmark, Lecture, Progress, type LectureDoc } from '../models/index.js';
 import { isStaff, requireRole } from '../middleware/auth.js';
@@ -141,6 +142,59 @@ r.get('/tags', async (_req, res) => {
     { $limit: 50 },
   ]);
   res.json(rows.map((r) => ({ tag: r._id, count: r.count })));
+});
+
+/**
+ * The lecture's place in its chapter, for "Video 5 of 64", prev/next and the numbered list, plus related
+ * videos from the subject's other chapters (the first few of each, in their own order, so the list mixes topics).
+ * Chapter order = lectureDate, then creation order (e.g. the import spreadsheet's order).
+ */
+r.get('/:id/playlist', async (req, res) => {
+  const lecture = await Lecture.findById(req.params.id, { chapter: 1, subject: 1, classes: 1, status: 1 }).lean();
+  if (!lecture || (lecture.status !== 'published' && !isStaff(req.user))) throw new HttpError(404, 'Lecture not found');
+  const visible = isStaff(req.user) ? {} : { status: 'published' as const };
+  const order = { lectureDate: 1, createdAt: 1, _id: 1 } as const;
+
+  // A lecture without a chapter plays within its subject + class instead.
+  const scope = lecture.chapter
+    ? { chapter: lecture.chapter }
+    : { subject: lecture.subject, chapter: null, classes: { $in: lecture.classes } };
+  const items = await Lecture.find({ ...scope, ...visible }, { title: 1, durationMinutes: 1, status: 1 }).sort(order).limit(1000).lean();
+  const index = items.findIndex((l) => String(l._id) === String(lecture._id));
+
+  const PER_CHAPTER = 3;
+  const MAX_RELATED = 12;
+  const grouped = await Lecture.aggregate<{ ids: Types.ObjectId[] }>([
+    {
+      $match: {
+        ...visible,
+        _id: { $ne: lecture._id },
+        subject: lecture.subject,
+        classes: { $in: lecture.classes },
+        ...(lecture.chapter && { chapter: { $ne: lecture.chapter } }),
+      },
+    },
+    { $sort: order },
+    { $group: { _id: '$chapter', ids: { $push: '$_id' }, first: { $first: '$_id' } } },
+    { $sort: { first: 1 } },
+    { $project: { ids: { $slice: ['$ids', PER_CHAPTER] } } },
+    { $limit: Math.ceil(MAX_RELATED / PER_CHAPTER) + 2 },
+  ]);
+  // Round-robin across chapters: 1st of each, then 2nd of each, …
+  const relatedIds: Types.ObjectId[] = [];
+  for (let i = 0; i < PER_CHAPTER && relatedIds.length < MAX_RELATED; i++) {
+    for (const g of grouped) if (g.ids[i] && relatedIds.length < MAX_RELATED) relatedIds.push(g.ids[i]);
+  }
+  let relatedQuery = Lecture.find({ _id: { $in: relatedIds } });
+  for (const p of POPULATE) relatedQuery = relatedQuery.populate(p);
+  const byId = new Map((await relatedQuery.lean()).map((l) => [String(l._id), l]));
+
+  res.json({
+    index, // 0-based; -1 if the lecture isn't in its own list (shouldn't happen)
+    total: items.length,
+    items: items.map((l) => ({ _id: l._id, title: l.title, durationMinutes: l.durationMinutes, status: l.status })),
+    related: relatedIds.map((id) => byId.get(String(id))).filter(Boolean),
+  });
 });
 
 r.get('/:id', async (req, res) => {

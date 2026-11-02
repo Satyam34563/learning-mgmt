@@ -1,9 +1,18 @@
+import { useEffect, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, className, formatBytes, formatDate, type Lecture, type Paged, type Progress } from '../lib/api';
+import { api, className, formatBytes, formatDate, type Lecture, type Progress } from '../lib/api';
 import { isStaff, useMe } from '../lib/hooks';
 import Player, { isTrackable } from '../components/Player';
-import { BookmarkButton, ErrorBox, Spinner, SubjectDot } from '../components/ui';
+import { BookmarkButton, ErrorBox, LectureCard, LectureGrid, Spinner, SubjectDot } from '../components/ui';
+
+/** The lecture's chapter in order (for "Video N of M" and the numbered list) plus related videos. */
+interface Playlist {
+  index: number;
+  total: number;
+  items: { _id: string; title: string; durationMinutes?: number; status: Lecture['status'] }[];
+  related: Lecture[];
+}
 
 export default function LectureView() {
   const { id = '' } = useParams();
@@ -15,12 +24,9 @@ export default function LectureView() {
     queryFn: () => api.get<Progress | null>(`/me/progress/${id}`),
     enabled: !!me,
   });
-  const related = useQuery({
-    queryKey: ['lectures', 'related', lecture?.chapter?._id ?? lecture?.subject._id],
-    queryFn: () =>
-      api.get<Paged<Lecture>>(
-        lecture!.chapter ? `/lectures?chapter=${lecture!.chapter._id}&sort=timetable` : `/lectures?subject=${lecture!.subject._id}&class=${lecture!.classes[0]?._id}&limit=8`,
-      ),
+  const { data: playlist } = useQuery({
+    queryKey: ['lectures', 'playlist', id],
+    queryFn: () => api.get<Playlist>(`/lectures/${id}/playlist`),
     enabled: !!lecture,
   });
 
@@ -37,7 +43,10 @@ export default function LectureView() {
 
   const done = progress.data?.completed;
   const canEdit = isStaff(me);
-  const others = related.data?.items.filter((l) => l._id !== lecture._id) ?? [];
+  const at = playlist && playlist.index >= 0 ? playlist.index : -1;
+  const prev = at > 0 ? playlist!.items[at - 1] : undefined;
+  const next = at >= 0 ? playlist!.items[at + 1] : undefined;
+  const listName = lecture.chapter?.title ?? lecture.subject.name;
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
@@ -60,6 +69,22 @@ export default function LectureView() {
             </>
           )}
         </nav>
+
+        {at >= 0 && (
+          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-line bg-card px-3 py-2">
+            <span className="grid size-7 place-items-center rounded-full bg-accent text-on-accent">
+              <svg viewBox="0 0 16 16" className="size-3" fill="currentColor"><path d="M5 3.5v9l7-4.5z" /></svg>
+            </span>
+            <span className="text-sm">
+              <span className="font-semibold">Video {at + 1} of {playlist!.total}</span>
+              <span className="muted"> · {listName}</span>
+            </span>
+            <span className="ml-auto flex gap-2">
+              {prev ? <Link className="btn" to={`/lectures/${prev._id}`} title={prev.title}>← Previous</Link> : <span className="btn opacity-40">← Previous</span>}
+              {next ? <Link className="btn-primary" to={`/lectures/${next._id}`} title={next.title}>Next →</Link> : <span className="btn opacity-40">Next →</span>}
+            </span>
+          </div>
+        )}
 
         {lecture.videoUrl ? (
           <Player
@@ -122,26 +147,62 @@ export default function LectureView() {
             </ul>
           </section>
         )}
+
+        {!!playlist?.related.length && (
+          <section className="mt-10">
+            <h2 className="mb-3">More videos</h2>
+            <LectureGrid>
+              {playlist.related.map((l) => <LectureCard key={l._id} lecture={l} />)}
+            </LectureGrid>
+          </section>
+        )}
       </div>
 
-      <aside>
-        <h2 className="mb-3 text-sm">{lecture.chapter ? 'More in this chapter' : 'More in this subject'}</h2>
-        {others.length ? (
-          <ul className="space-y-1">
-            {others.map((l) => (
-              <li key={l._id}>
-                <Link to={`/lectures/${l._id}`} className="block rounded-md px-3 py-2 text-sm hover:bg-subtle">
-                  <div className="line-clamp-2">{l.title}</div>
-                  <div className="mt-0.5 text-xs muted">{[l.teacher?.name, l.durationMinutes && `${l.durationMinutes} min`].filter(Boolean).join(' · ')}</div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm muted">Nothing else yet.</p>
-        )}
+      <aside className="lg:sticky lg:top-20 lg:self-start">
+        <div className="mb-2 flex items-baseline justify-between gap-2">
+          <h2 className="text-base">{lecture.chapter ? 'In this chapter' : 'In this subject'}</h2>
+          {at >= 0 && <span className="text-xs muted">{at + 1} / {playlist!.total}</span>}
+        </div>
+        {playlist ? <ChapterList items={playlist.items} current={lecture._id} /> : <Spinner />}
       </aside>
     </div>
+  );
+}
+
+/** Every video in the chapter, numbered in order; the playing one highlighted and scrolled into view. */
+function ChapterList({ items, current }: { items: Playlist['items']; current: string }) {
+  const currentRef = useRef<HTMLAnchorElement>(null);
+  useEffect(() => {
+    currentRef.current?.scrollIntoView({ block: 'nearest' });
+  }, [current]);
+
+  if (items.length <= 1) return <p className="text-sm muted">Nothing else yet.</p>;
+  return (
+    <ol className="card max-h-[70vh] divide-y divide-line overflow-y-auto">
+      {items.map((l, i) => {
+        const playing = l._id === current;
+        return (
+          <li key={l._id}>
+            <Link
+              ref={playing ? currentRef : undefined}
+              to={`/lectures/${l._id}`}
+              aria-current={playing ? 'true' : undefined}
+              className={`flex items-start gap-3 px-3 py-2.5 text-sm ${playing ? 'bg-subtle' : 'hover:bg-subtle'}`}
+            >
+              <span className={`w-6 shrink-0 pt-px text-right text-xs tabular-nums ${playing ? 'font-bold text-accent' : 'muted'}`}>
+                {playing ? '▶' : i + 1}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className={`line-clamp-2 ${playing ? 'font-semibold text-accent' : ''}`}>{l.title}</span>
+                <span className="mt-0.5 block text-xs muted">
+                  {[playing && `Now playing · ${i + 1}`, l.durationMinutes && `${l.durationMinutes} min`, l.status === 'draft' && 'Draft'].filter(Boolean).join(' · ')}
+                </span>
+              </span>
+            </Link>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 

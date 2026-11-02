@@ -18,6 +18,12 @@ export default tseslint.config(
     languageOptions: { globals: globals.node },
   },
   {
+    // CommonJS config files (e.g. the pm2 process file)
+    files: ['**/*.cjs'],
+    languageOptions: { sourceType: 'commonjs', globals: globals.node },
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
+  },
+  {
     files: ['client/**/*.{ts,tsx}'],
     languageOptions: { globals: globals.browser },
     plugins: { 'react-hooks': reactHooks },
